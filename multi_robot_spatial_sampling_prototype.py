@@ -2,14 +2,15 @@ __author__ = "Laurence Roberts-Elliott"
 import simpy
 import os
 import glob
+import cProfile
 import numpy as np
 import random
 import matplotlib.pyplot as plt
 from astar_python import Astar
 from gaussian import makeGaussian
 
-world_width = 5
-world_height = 5
+world_width = 10
+world_height = 10
 gaussian = makeGaussian(world_height)
 sampled = np.zeros((world_width, world_height))
 movement_matrix = np.ones((world_width, world_height))
@@ -17,11 +18,11 @@ a_star = Astar(movement_matrix)
 figure_dir = "sim_visualisation/"
 # Measured in m/s, max speed of Leo rover
 robot_speed = 0.4
-sample_locations = [[9, 5], [5, 5], [4, 4], [3, 3]]
 robots = []
 
 
 def draw_map(robots, env):
+    plt.close('all')
     fig = plt.figure()
     ax = fig.gca()
     ax.set_xticks(np.arange(0, world_width, 1))
@@ -77,14 +78,31 @@ def main():
     # rob_0 = Robot([0, 0], 0)
     # rob_1 = Robot([world_width - 1, world_height - 1], 1)
     global robots
+    num_robots = 5
     robots = [Robot([random.randrange(0, world_width),
-                     random.randrange(0, world_height)], r) for r in range(0, 4)]
+                     random.randrange(0, world_height)], r) for r in range(0, num_robots)]
+
+    sample_locations = []
+
     for robot in robots:
-        env.process(robot.move_robot_and_sample(env, [random.randrange(0, world_width),
-                                                      random.randrange(0, world_height)]))
+        sample_location = [random.randrange(0, world_width), random.randrange(0, world_height)]
+        while sample_location in sample_locations:
+            sample_location = [random.randrange(0, world_width), random.randrange(0, world_height)]
+        sample_locations.append(sample_location)
+        env.process(robot.move_robot_and_sample(env, sample_location))
+    # sample_locations = []
+    #
+    # while len(sample_locations) < (world_width*world_height) / 4:
+    #     for robot in robots:
+    #         sample_location = [random.randrange(0, world_width), random.randrange(0, world_height)]
+    #         while sample_location in sample_locations:
+    #             sample_location = [random.randrange(0, world_width), random.randrange(0, world_height)]
+    #         sample_locations.append(sample_location)
+    #         env.process(robot.move_robot_and_sample(env, sample_location))
     env.run()
     print("Simulation complete at t =", str(env.now))
     
 
 if __name__ == "__main__":
-    main()
+    # main()
+    cProfile.run('main()')
