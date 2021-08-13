@@ -12,6 +12,7 @@ gaussian = makeGaussian(world_height)
 sampled = np.zeros((world_width, world_height))
 movement_matrix = np.ones((world_width, world_height))
 a_star = Astar(movement_matrix)
+figure_dir = "sim_visualisation/"
 # Measured in m/s, max speed of Leo rover
 robot_speed = 0.4
 robot_pos = [0, 0]
@@ -38,12 +39,13 @@ def move_robot_and_sample(env):
             ax.set_yticks(np.arange(0, world_height, 1))
             plt.xlim([0, world_width])
             plt.ylim([0, world_height])
-            plt.imshow(sampled, cmap="hot", interpolation="nearest",
+            plt.imshow(sampled, cmap="gray", interpolation="nearest",
                        vmin=0, vmax=1)
             plt.scatter([path[s][0]], [path[s][1]])
             plt.grid()
             plt.title(str(path[s]) + " at t = " + str(env.now))
-            plt.show()
+            # plt.show()
+            plt.savefig(figure_dir + "t_" + str(env.now).replace(".", "_"))
 
             if s != len(path) - 1:
                 if (abs(path[s][0] - path[s + 1][0]) > 0 and
@@ -59,12 +61,13 @@ def move_robot_and_sample(env):
                 ax.set_yticks(np.arange(0, world_height, 1))
                 plt.xlim([0, world_width])
                 plt.ylim([0, world_height])
-                plt.imshow(sampled, cmap="hot", interpolation="nearest",
+                plt.imshow(sampled, cmap="gray", interpolation="nearest",
                            vmin=0, vmax=1)
                 plt.scatter([path[s][0]], [path[s][1]])
                 plt.grid()
                 plt.title(str(path[s]) + " at t = " + str(env.now))
-                plt.show()
+                # plt.show()
+                plt.savefig(figure_dir + "t_" + str(env.now).replace(".", "_"))
                 print("Sampled value:", gaussian[path[s][1], path[s][0]], "at", str(robot_pos))
                 yield env.timeout(30)
 
