@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 from astar_python import Astar
 from gaussian import makeGaussian
 
-world_width = 10
-world_height = 10
+world_width = 5
+world_height = 5
 gaussian = makeGaussian(world_height)
 sampled = np.zeros((world_width, world_height))
 movement_matrix = np.ones((world_width, world_height))
@@ -37,14 +37,14 @@ def draw_map(robots, env):
     plt.grid()
     plt.title(str(robot.pos) + " at t = " + str(env.now))
     # plt.show()
-    plt.savefig(figure_dir + "t_" + str(env.now).replace(".", "_"))
+    plt.savefig(figure_dir + "t_" + str(float(env.now)).replace(".", "_"))
 
 
 class Robot:
-    def __init__(self, start_pos, rob_id):
+    def __init__(self, start_pos, rob_id, env):
         self.pos = start_pos
         self.id = rob_id
-        self.goal_pos = [0, 0]
+        self.task = None
         self.color = [random.randrange(50, 256) / 255, random.randrange(50, 256) / 255,
                       random.randrange(50, 256) / 255]
 
@@ -52,7 +52,6 @@ class Robot:
         path = a_star.run(self.pos, sample_location)
         for s in range(0, len(path)):
             self.pos = path[s]
-            # print("\n", str(self.pos), "at t =", str(env.now))
             draw_map(robots, env)
 
             if s != len(path) - 1:
@@ -75,33 +74,41 @@ def main():
         os.remove(f)
 
     env = simpy.Environment()
-    # rob_0 = Robot([0, 0], 0)
-    # rob_1 = Robot([world_width - 1, world_height - 1], 1)
     global robots
     num_robots = 5
     robots = [Robot([random.randrange(0, world_width),
-                     random.randrange(0, world_height)], r) for r in range(0, num_robots)]
+                     random.randrange(0, world_height)], r, env) for r in range(0, num_robots)]
 
+    env.process(multi_robot_sampling(env))
+    env.run()
+
+    # for robot in robots:
+    #     sample_location = [random.randrange(0, world_width), random.randrange(0, world_height)]
+    #     while sample_location in sample_locations:
+    #         sample_location = [random.randrange(0, world_width), random.randrange(0, world_height)]
+    #     sample_locations.append(sample_location)
+    #     env.process(robot.move_robot_and_sample(env, sample_location))
+
+
+def multi_robot_sampling(env):
     sample_locations = []
 
-    for robot in robots:
-        sample_location = [random.randrange(0, world_width), random.randrange(0, world_height)]
-        while sample_location in sample_locations:
+    while len(sample_locations) < (world_width*world_height) / 4:
+        for robot in robots:
             sample_location = [random.randrange(0, world_width), random.randrange(0, world_height)]
-        sample_locations.append(sample_location)
-        env.process(robot.move_robot_and_sample(env, sample_location))
-    # sample_locations = []
-    #
-    # while len(sample_locations) < (world_width*world_height) / 4:
-    #     for robot in robots:
-    #         sample_location = [random.randrange(0, world_width), random.randrange(0, world_height)]
-    #         while sample_location in sample_locations:
-    #             sample_location = [random.randrange(0, world_width), random.randrange(0, world_height)]
-    #         sample_locations.append(sample_location)
-    #         env.process(robot.move_robot_and_sample(env, sample_location))
-    env.run()
-    print("Simulation complete at t =", str(env.now))
-    
+            while sample_location in sample_locations:
+                sample_location = [random.randrange(0, world_width), random.randrange(0, world_height)]
+            if robot.task is None:
+                sample_locations.append(sample_location)
+                robot.task = env.process(robot.move_robot_and_sample(env, sample_location))
+                yield robot.task
+            elif robot.task is not None:
+                # print(robot.task.processed, env.now)
+                if robot.task.processed:
+                    sample_locations.append(sample_location)
+                    robot.task = env.process(robot.move_robot_and_sample(env, sample_location))
+                    yield robot.task
+
 
 if __name__ == "__main__":
     # main()
