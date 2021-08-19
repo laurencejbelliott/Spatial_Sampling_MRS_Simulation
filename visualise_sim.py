@@ -13,6 +13,5 @@ for f in old_figures:
     image = plt.imread(f)
     plt.imshow(image)
     plt.draw()
-    plt.pause(0.1)
-    input("<Hit Enter To Close>")
+    plt.pause(1)
     plt.close(fig)
