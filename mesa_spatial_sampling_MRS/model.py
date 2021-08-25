@@ -1,4 +1,6 @@
 __author__ = "Laurence Roberts-Elliott"
+import os
+import glob
 from mesa import Model, Agent
 from mesa.time import SimultaneousActivation
 from mesa.space import SingleGrid
@@ -6,6 +8,7 @@ from mesa.datacollection import DataCollector
 import numpy as np
 from astar_python import Astar
 from gaussian import makeGaussian
+from matplotlib import pyplot as plt
 
 
 class Robot(Agent):
@@ -18,11 +21,12 @@ class Robot(Agent):
         self.goal = []
         self.path = []
         self.path_step = 0
+        self.type = 0  # Agent type 0 is a robot
 
     # Step function
     def step(self):
         if 0 < self.path_step < len(self.path) - 1:
-            # Commented line enables rudimentary collision avoidance (TODO: Currently bugged)
+            # Commented line enables rudimentary collision avoidance (TODO: Currently bugged, fix to avoid gridlocking)
             # self.model.astar = Astar(self.model.movement_matrix)
             self.path = self.model.astar.run(self.pos, self.goal)
             if self.model.grid.is_cell_empty(tuple(self.path[self.path_step])):
@@ -30,6 +34,9 @@ class Robot(Agent):
                 self.path_step = 1
 
         elif self.path_step == len(self.path) - 1:
+            self.model.sampled[self.path[self.path_step][1], self.path[self.path_step][0]] = \
+                self.model.gaussian[self.path[self.path_step][0], self.path[self.path_step][1]]
+            # SampledCell(self.goal, self.model)
             self.goal = []
             self.path = []
             self.path_step = 0
@@ -40,18 +47,32 @@ class Robot(Agent):
         self.path_step = 1
 
 
+class SampledCell(Agent):
+    # 1 Initialisation
+    def __init__(self, pos, model):
+        super().__init__(pos, model)
+        self.pos = pos
+        self.color = "#FFFFFF"
+        self.type = 1  # Agent type 1 is a sampled cell
+
+
 class SpatialSamplingModel(Model):
     def __init__(self, height=20, width=20, num_robots=2):
         self.height = height
         self.width = width
         self.num_robots = num_robots
-
+        self.robots = []
+        self.figure_dir = "../sim_visualisation/"
         self.schedule = SimultaneousActivation(self)
-        self.grid = SingleGrid(width, height, torus=False)
-        self.gaussian = makeGaussian(height)  # TODO: Add sampling and visualisation of Gaussian distribution
-        self.sampled = np.zeros((width, height))
+        self.grid = SingleGrid(width, height, torus=False)  # TODO: Use MultiGrid to visualise sampled locations values
+        self.gaussian = makeGaussian(height)
+        self.sampled = np.ones((width, height)) * -1
         self.movement_matrix = np.ones((width, height))
         self.astar = Astar(self.movement_matrix)
+
+        old_figures = glob.glob(self.figure_dir + '*')
+        for f in old_figures:
+            os.remove(f)
         # Measured in m/s, max speed of Leo rover
         # self.robot_speed = 0.4
 
@@ -66,16 +87,36 @@ class SpatialSamplingModel(Model):
         for rob_id in range(self.num_robots):
             x = self.random.randrange(1, width)
             y = self.random.randrange(1, height)
-            while [x, y] in starting_positions:
+            while [x, y] in starting_positions and self.sampled[x, y] != -1:
                 x = self.random.randrange(1, width)
                 y = self.random.randrange(1, height)
             starting_positions.append([x, y])
             agent = Robot((x, y), self)
+            self.robots.append(agent)
             self.grid.position_agent(agent, (x, y))
             self.schedule.add(agent)
 
         self.running = True
         # self.datacollector.collect(self)
+
+    def draw_map(self):
+        plt.close('all')
+        fig = plt.figure()
+        ax = fig.gca()
+        ax.set_xticks(np.arange(0, self.width, 1))
+        ax.set_yticks(np.arange(0, self.height, 1))
+        plt.xlim([0, self.width])
+        plt.ylim([0, self.height])
+        plt.imshow(self.sampled, cmap="gray", interpolation="nearest",
+                   vmin=0, vmax=1)
+
+        for robot in self.robots:
+            plt.scatter(robot.pos[0], robot.pos[1], c=[robot.color])
+        plt.grid()
+        plt.title("Step " + str(self.schedule.time))
+        # plt.show()
+        # plt.savefig(self.figure_dir + "t_" + str(float(env.now)).replace(".", "_"))
+        plt.savefig(self.figure_dir + str(self.schedule.time))
 
     def step(self):
         self.movement_matrix = np.ones((self.width, self.height))
@@ -83,7 +124,14 @@ class SpatialSamplingModel(Model):
             for cell in self.grid.iter_neighborhood((robot.pos[0], robot.pos[1]), False, True, 1):
                 self.movement_matrix[cell[0], cell[1]] = 99
             if not robot.goal:
-                robot.sample_pos(self.grid.find_empty())
+                goal_pos = self.grid.find_empty()
+                while self.sampled[goal_pos[0], goal_pos[1]] != -1:
+                    goal_pos = self.grid.find_empty()
+                robot.sample_pos(goal_pos)
+
+        self.draw_map()
+        if -1 not in self.sampled:
+            self.running = False
 
         # Run one step of the model. If all agents are happy, halt the model.
         self.schedule.step()
