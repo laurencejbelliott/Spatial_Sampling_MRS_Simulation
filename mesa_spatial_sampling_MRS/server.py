@@ -21,7 +21,8 @@ def draw(agent):
     if agent.type == 0:
         portrayal = {"Shape": "circle", "r": 0.5, "Filled": "true", "Layer": 1, "Color": [agent.color, agent.color]}
     else:
-        portrayal = {"Shape": "rect", "w": 1.0, "h": 1.0, "Filled": "true", "Layer": 0, "Color": [agent.color, agent.color]}
+        portrayal = {"Shape": "rect", "w": 1.0, "h": 1.0, "Filled": "true", "Layer": 0,
+                     "Color": [agent.color, agent.color]}
     return portrayal
 
 

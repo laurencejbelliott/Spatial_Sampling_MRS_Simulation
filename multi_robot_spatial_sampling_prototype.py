@@ -108,8 +108,10 @@ def multi_robot_sampling(env):
                     sample_locations.append(sample_location)
                     robot.task = env.process(robot.move_robot_and_sample(env, sample_location))
                     yield robot.task
+                else:
+                    continue
 
 
 if __name__ == "__main__":
-    # main()
-    cProfile.run('main()')
+    main()
+    # cProfile.run('main()')

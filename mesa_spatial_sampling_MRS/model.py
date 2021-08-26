@@ -3,7 +3,7 @@ import os
 import glob
 from mesa import Model, Agent
 from mesa.time import SimultaneousActivation
-from mesa.space import SingleGrid
+from mesa.space import MultiGrid
 from mesa.datacollection import DataCollector
 import numpy as np
 from astar_python import Astar
@@ -29,14 +29,24 @@ class Robot(Agent):
             # Commented line enables rudimentary collision avoidance (TODO: Currently bugged, fix to avoid gridlocking)
             # self.model.astar = Astar(self.model.movement_matrix)
             self.path = self.model.astar.run(self.pos, self.goal)
-            if self.model.grid.is_cell_empty(tuple(self.path[self.path_step])):
+            cell_contains_robot = False
+            for agent in self.model.grid.get_cell_list_contents(tuple(self.path[self.path_step])):
+                if agent.type == 0:
+                    cell_contains_robot = True
+
+            if self.model.grid.is_cell_empty(tuple(self.path[self.path_step])) or not cell_contains_robot:
                 self.model.grid.move_agent(self, tuple(self.path[self.path_step]))
                 self.path_step = 1
+            # if self.model.grid.is_cell_empty(tuple(self.path[self.path_step])):
+            #     self.model.grid.move_agent(self, tuple(self.path[self.path_step]))
+            #     self.path_step = 1
 
         elif self.path_step == len(self.path) - 1:
             self.model.sampled[self.path[self.path_step][1], self.path[self.path_step][0]] = \
                 self.model.gaussian[self.path[self.path_step][0], self.path[self.path_step][1]]
-            # SampledCell(self.goal, self.model)
+            agent = SampledCell(self.goal, self.model, self.model.gaussian[self.path[self.path_step][0],
+                                                                           self.path[self.path_step][1]])
+            self.model.grid.place_agent(agent, self.goal)
             self.goal = []
             self.path = []
             self.path_step = 0
@@ -49,10 +59,11 @@ class Robot(Agent):
 
 class SampledCell(Agent):
     # 1 Initialisation
-    def __init__(self, pos, model):
+    def __init__(self, pos, model, value=0):
         super().__init__(pos, model)
         self.pos = pos
-        self.color = "#FFFFFF"
+        self.value = value
+        self.color = "#%02x%02x%02x" % (int(value * 255), int(value * 255), int(value * 255))
         self.type = 1  # Agent type 1 is a sampled cell
 
 
@@ -64,7 +75,7 @@ class SpatialSamplingModel(Model):
         self.robots = []
         self.figure_dir = "../sim_visualisation/"
         self.schedule = SimultaneousActivation(self)
-        self.grid = SingleGrid(width, height, torus=False)  # TODO: Use MultiGrid to visualise sampled locations values
+        self.grid = MultiGrid(width, height, torus=False)
         self.gaussian = makeGaussian(height)
         self.sampled = np.ones((width, height)) * -1
         self.movement_matrix = np.ones((width, height))
@@ -93,7 +104,7 @@ class SpatialSamplingModel(Model):
             starting_positions.append([x, y])
             agent = Robot((x, y), self)
             self.robots.append(agent)
-            self.grid.position_agent(agent, (x, y))
+            self.grid.place_agent(agent, (x, y))
             self.schedule.add(agent)
 
         self.running = True
@@ -120,16 +131,17 @@ class SpatialSamplingModel(Model):
 
     def step(self):
         self.movement_matrix = np.ones((self.width, self.height))
-        for robot in self.schedule.agents:
-            for cell in self.grid.iter_neighborhood((robot.pos[0], robot.pos[1]), False, True, 1):
-                self.movement_matrix[cell[0], cell[1]] = 99
-            if not robot.goal:
-                goal_pos = self.grid.find_empty()
-                while self.sampled[goal_pos[0], goal_pos[1]] != -1:
+        for agent in self.schedule.agents:
+            if agent.type == 0:  # True if the agent is a robot
+                for cell in self.grid.iter_neighborhood((agent.pos[0], agent.pos[1]), False, True, 1):
+                    self.movement_matrix[cell[0], cell[1]] = 99
+                if not agent.goal:
                     goal_pos = self.grid.find_empty()
-                robot.sample_pos(goal_pos)
+                    while self.sampled[goal_pos[0], goal_pos[1]] != -1:
+                        goal_pos = self.grid.find_empty()
+                    agent.sample_pos(goal_pos)
 
-        self.draw_map()
+        # self.draw_map()
         if -1 not in self.sampled:
             self.running = False
 
