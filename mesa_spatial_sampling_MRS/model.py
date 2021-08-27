@@ -98,7 +98,7 @@ class SpatialSamplingModel(Model):
         for rob_id in range(self.num_robots):
             x = self.random.randrange(1, width)
             y = self.random.randrange(1, height)
-            while [x, y] in starting_positions and self.sampled[x, y] != -1:
+            while [x, y] in starting_positions:
                 x = self.random.randrange(1, width)
                 y = self.random.randrange(1, height)
             starting_positions.append([x, y])
@@ -131,21 +131,23 @@ class SpatialSamplingModel(Model):
 
     def step(self):
         self.movement_matrix = np.ones((self.width, self.height))
+
         for agent in self.schedule.agents:
             if agent.type == 0:  # True if the agent is a robot
                 for cell in self.grid.iter_neighborhood((agent.pos[0], agent.pos[1]), False, True, 1):
                     self.movement_matrix[cell[0], cell[1]] = 99
                 if not agent.goal:
                     goal_pos = self.grid.find_empty()
-                    while self.sampled[goal_pos[0], goal_pos[1]] != -1:
-                        goal_pos = self.grid.find_empty()
-                    agent.sample_pos(goal_pos)
+                    if goal_pos is not None:
+                        while self.sampled[goal_pos[1], goal_pos[0]] != -1:
+                            goal_pos = self.grid.find_empty()
+                        agent.sample_pos(goal_pos)
 
         # self.draw_map()
         if -1 not in self.sampled:
             self.running = False
 
-        # Run one step of the model. If all agents are happy, halt the model.
+        # Run one step of the model.
         self.schedule.step()
 
         # Collect data
