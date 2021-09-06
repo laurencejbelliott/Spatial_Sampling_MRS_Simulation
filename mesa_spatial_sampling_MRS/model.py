@@ -18,6 +18,7 @@ class Robot(Agent):
         self.pos = pos
         r = lambda: self.model.random.randint(0, 255)
         self.color = ("#%02X%02X%02X" % (r(), r(), r()))
+        self.movement_matrix = np.ones((self.model.width, self.model.height))
         self.goal = []
         self.path = []
         self.path_step = 0
@@ -25,31 +26,33 @@ class Robot(Agent):
 
     # Step function
     def step(self):
-        if 0 < self.path_step < len(self.path) - 1:
-            # Commented line enables rudimentary collision avoidance (TODO: Currently bugged, fix to avoid gridlocking)
-            # self.model.astar = Astar(self.model.movement_matrix)
-            self.path = self.model.astar.run(self.pos, self.goal)
-            cell_contains_robot = False
-            for agent in self.model.grid.get_cell_list_contents(tuple(self.path[self.path_step])):
-                if agent.type == 0:
-                    cell_contains_robot = True
+        if self.path is not None:
+            if 0 < self.path_step < len(self.path) - 1:
+                # Commented line enables rudimentary collision avoidance
+                self.model.astar = Astar(self.movement_matrix)
+                self.path = self.model.astar.run(self.pos, self.goal)
 
-            if self.model.grid.is_cell_empty(tuple(self.path[self.path_step])) or not cell_contains_robot:
-                self.model.grid.move_agent(self, tuple(self.path[self.path_step]))
-                self.path_step = 1
-            # if self.model.grid.is_cell_empty(tuple(self.path[self.path_step])):
-            #     self.model.grid.move_agent(self, tuple(self.path[self.path_step]))
-            #     self.path_step = 1
+                # Check if next cell in robot path contains another robot
+                if self.path is not None:
+                    if self.path[self.path_step] is not None:
+                        cell_contains_robot = False
+                        for agent in self.model.grid.get_cell_list_contents(tuple(self.path[self.path_step])):
+                            if agent.type == 0:
+                                cell_contains_robot = True
 
-        elif self.path_step == len(self.path) - 1:
-            self.model.sampled[self.path[self.path_step][1], self.path[self.path_step][0]] = \
-                self.model.gaussian[self.path[self.path_step][0], self.path[self.path_step][1]]
-            agent = SampledCell(self.goal, self.model, self.model.gaussian[self.path[self.path_step][0],
-                                                                           self.path[self.path_step][1]])
-            self.model.grid.place_agent(agent, self.goal)
-            self.goal = []
-            self.path = []
-            self.path_step = 0
+                        if self.model.grid.is_cell_empty(tuple(self.path[self.path_step])) or not cell_contains_robot:
+                            self.model.grid.move_agent(self, tuple(self.path[self.path_step]))
+                            self.path_step = 1
+
+            elif self.path_step == len(self.path) - 1:
+                self.model.sampled[self.path[self.path_step][1], self.path[self.path_step][0]] = \
+                    self.model.gaussian[self.path[self.path_step][0], self.path[self.path_step][1]]
+                agent = SampledCell(self.goal, self.model, self.model.gaussian[self.path[self.path_step][0],
+                                                                               self.path[self.path_step][1]])
+                self.model.grid.place_agent(agent, self.goal)
+                self.goal = []
+                self.path = []
+                self.path_step = 0
 
     def sample_pos(self, goal_pos):
         self.goal = goal_pos
@@ -134,8 +137,18 @@ class SpatialSamplingModel(Model):
 
         for agent in self.schedule.agents:
             if agent.type == 0:  # True if the agent is a robot
-                for cell in self.grid.iter_neighborhood((agent.pos[0], agent.pos[1]), False, True, 1):
-                    self.movement_matrix[cell[0], cell[1]] = 99
+                agent.movement_matrix = np.ones((self.width, self.height))
+
+        for agent in self.schedule.agents:
+            if agent.type == 0:  # True if the agent is a robot
+                current_agent_id = agent.unique_id
+                current_agent_pos = agent.pos
+                for other_agent in self.schedule.agents:
+                    if other_agent.type == 0:  # True if the agent is a robot
+                        if other_agent.unique_id != current_agent_id:
+                            for cell in self.grid.iter_neighborhood((current_agent_pos[0], current_agent_pos[1]), False,
+                                                                    True, radius=2):
+                                other_agent.movement_matrix[cell[1], cell[0]] = 10
                 if not agent.goal:
                     goal_pos = self.grid.find_empty()
                     if goal_pos is not None:
