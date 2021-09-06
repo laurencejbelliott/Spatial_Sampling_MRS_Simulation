@@ -19,6 +19,7 @@ class Robot(Agent):
         r = lambda: self.model.random.randint(0, 255)
         self.color = ("#%02X%02X%02X" % (r(), r(), r()))
         self.movement_matrix = np.ones((self.model.width, self.model.height))
+        self.astar = Astar(self.movement_matrix)
         self.goal = []
         self.path = []
         self.path_step = 0
@@ -29,8 +30,8 @@ class Robot(Agent):
         if self.path is not None:
             if 0 < self.path_step < len(self.path) - 1:
                 # Commented line enables rudimentary collision avoidance
-                self.model.astar = Astar(self.movement_matrix)
-                self.path = self.model.astar.run(self.pos, self.goal)
+                self.astar = Astar(self.movement_matrix)
+                self.path = self.astar.run(self.pos, self.goal)
 
                 # Check if next cell in robot path contains another robot
                 if self.path is not None:
@@ -56,7 +57,8 @@ class Robot(Agent):
 
     def sample_pos(self, goal_pos):
         self.goal = goal_pos
-        self.path = self.model.astar.run(self.pos, self.goal)
+        print("Robot", self.unique_id, "assigned task at", self.goal, "at step", self.model.step_num)
+        self.path = self.astar.run(self.pos, self.goal)
         self.path_step = 1
 
 
@@ -81,8 +83,8 @@ class SpatialSamplingModel(Model):
         self.grid = MultiGrid(width, height, torus=False)
         self.gaussian = makeGaussian(height)
         self.sampled = np.ones((width, height)) * -1
-        self.movement_matrix = np.ones((width, height))
-        self.astar = Astar(self.movement_matrix)
+        self.step_num = 0
+        self.num_goals = 0
 
         old_figures = glob.glob(self.figure_dir + '*')
         for f in old_figures:
@@ -133,8 +135,7 @@ class SpatialSamplingModel(Model):
         plt.savefig(self.figure_dir + str(self.schedule.time))
 
     def step(self):
-        self.movement_matrix = np.ones((self.width, self.height))
-
+        self.step_num += 1
         for agent in self.schedule.agents:
             if agent.type == 0:  # True if the agent is a robot
                 agent.movement_matrix = np.ones((self.width, self.height))
