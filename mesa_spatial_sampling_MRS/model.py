@@ -51,6 +51,7 @@ class Robot(Agent):
                 agent = SampledCell(self.goal, self.model, self.model.gaussian[self.path[self.path_step][0],
                                                                                self.path[self.path_step][1]])
                 self.model.grid.place_agent(agent, self.goal)
+                print("Robot", self.unique_id, "sampled value", agent.value, "at", self.goal)
                 self.goal = []
                 self.path = []
                 self.path_step = 0
@@ -156,8 +157,9 @@ class SpatialSamplingModel(Model):
                         while self.sampled[goal_pos[1], goal_pos[0]] != -1:
                             goal_pos = self.grid.find_empty()
                         agent.sample_pos(goal_pos)
+                print("Robot", str(agent.unique_id)+"'s path:", agent.path)
+        print("")
 
-        # self.draw_map()
         if -1 not in self.sampled:
             self.running = False
 
