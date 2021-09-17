@@ -35,7 +35,7 @@ canvas_element = CanvasGrid(draw, width, height, 500, 500)
 model_params = {
     "height": height,
     "width": width,
-    "num_robots": 5
+    "num_robots": 10
 }
 
 server = ModularServer(

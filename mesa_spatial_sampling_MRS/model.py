@@ -1,6 +1,9 @@
 __author__ = "Laurence Roberts-Elliott"
+# TODO: Document dependencies in README
 import os
 import glob
+import random
+
 from mesa import Model, Agent
 from mesa.time import SimultaneousActivation
 from mesa.space import MultiGrid
@@ -9,6 +12,8 @@ import numpy as np
 from astar_python import Astar
 from gaussian import makeGaussian
 from matplotlib import pyplot as plt
+
+# TODO: Comment code where necessary for readability
 
 
 class Robot(Agent):
@@ -24,12 +29,16 @@ class Robot(Agent):
         self.path = []
         self.path_step = 0
         self.type = 0  # Agent type 0 is a robot
+        self.previous_cell = None
+        self.deadlocked = False
 
     # Step function
     def step(self):
+        self.deadlocked = False
         if self.path is not None:
             if 0 < self.path_step < len(self.path) - 1:
-                # Commented line enables rudimentary collision avoidance
+                # TODO: Detect deadlock (two agents have the same next cell in their path) and stop one robot
+                # Comment the following line to disable cost based collision avoidance
                 self.astar = Astar(self.movement_matrix)
                 self.path = self.astar.run(self.pos, self.goal)
 
@@ -41,8 +50,63 @@ class Robot(Agent):
                             if agent.type == 0:
                                 cell_contains_robot = True
 
+                        deadlock_cells = []
                         if self.model.grid.is_cell_empty(tuple(self.path[self.path_step])) or not cell_contains_robot:
-                            self.model.grid.move_agent(self, tuple(self.path[self.path_step]))
+                            for agent in self.model.schedule.agents:
+                                if agent.type == 0:  # True if the agent is a robot
+                                    if agent.path is not None and len(agent.path) > 0:
+                                        if list(self.pos) == agent.path[agent.path_step]:
+                                            self.deadlocked = True
+                                            deadlock_cells.append(tuple(agent.path[agent.path_step]))
+                                        # try:
+                                        #     if list(self.pos) == agent.path[agent.path_step]:
+                                        #         self.deadlocked = True
+                                        #         deadlock_cells.append(tuple(agent.path[agent.path_step]))
+                                        # except IndexError as e:
+                                        #     print(e)
+                                        #     # pass
+
+                            if self.deadlocked:
+                                print("Deadlock detected!")
+                                print(deadlock_cells, "\n")
+                                neighbours = []
+                                neighbour_free = False
+                                for cell in self.model.grid.iter_neighborhood(self.pos, False, False):
+                                    neighbours.append(cell)
+                                while not neighbour_free:
+                                    neighbour_cell_i = random.randrange(len(neighbours))
+                                    neighbour_cell = neighbours[neighbour_cell_i]
+                                    robot_in_cell = False
+                                    for agent in self.model.grid.get_cell_list_contents(neighbour_cell):
+                                        if agent.type == 0:  # If agent is a robot
+                                            robot_in_cell = True
+                                    if not robot_in_cell:
+                                        if neighbour_cell not in deadlock_cells:
+                                            neighbour_free = True
+                                print("Moving from", self.pos, "to", neighbour_cell)
+                                self.model.grid.move_agent(self, neighbour_cell)
+                                self.path_step = 1
+                            else:
+                                self.model.grid.move_agent(self, tuple(self.path[self.path_step]))
+                                self.path_step = 1
+                        else:
+                            print("Cell in path occupied")
+                            neighbours = []
+                            neighbour_free = False
+                            for cell in self.model.grid.iter_neighborhood(self.pos, False, False):
+                                neighbours.append(cell)
+                            while not neighbour_free:
+                                neighbour_cell_i = random.randrange(len(neighbours))
+                                neighbour_cell = neighbours[neighbour_cell_i]
+                                robot_in_cell = False
+                                for agent in self.model.grid.get_cell_list_contents(neighbour_cell):
+                                    if agent.type == 0:  # If agent is a robot
+                                        robot_in_cell = True
+                                if not robot_in_cell:
+                                    if neighbour_cell not in deadlock_cells:
+                                        neighbour_free = True
+                            print("Moving from", self.pos, "to", neighbour_cell)
+                            self.model.grid.move_agent(self, neighbour_cell)
                             self.path_step = 1
 
             elif self.path_step == len(self.path) - 1:
@@ -135,6 +199,7 @@ class SpatialSamplingModel(Model):
         # plt.savefig(self.figure_dir + "t_" + str(float(env.now)).replace(".", "_"))
         plt.savefig(self.figure_dir + str(self.schedule.time))
 
+    # TODO: Fix robots being assigned a goal in a cell that is already assigned to another robot
     def step(self):
         self.step_num += 1
         for agent in self.schedule.agents:
