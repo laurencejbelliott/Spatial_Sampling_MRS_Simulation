@@ -92,21 +92,33 @@ class Robot(Agent):
                         else:
                             print("Cell in path occupied")
                             neighbours = []
-                            neighbour_free = False
                             for cell in self.model.grid.iter_neighborhood(self.pos, False, False):
                                 neighbours.append(cell)
-                            while not neighbour_free:
-                                neighbour_cell_i = random.randrange(len(neighbours))
-                                neighbour_cell = neighbours[neighbour_cell_i]
-                                robot_in_cell = False
-                                for agent in self.model.grid.get_cell_list_contents(neighbour_cell):
-                                    if agent.type == 0:  # If agent is a robot
-                                        robot_in_cell = True
-                                if not robot_in_cell:
-                                    if neighbour_cell not in deadlock_cells:
-                                        neighbour_free = True
-                            print("Moving from", self.pos, "to", neighbour_cell)
-                            self.model.grid.move_agent(self, neighbour_cell)
+                            free_neighbours = []
+                            for neighbour_cell in neighbours:
+                                if neighbour_cell not in deadlock_cells:
+                                    robot_in_cell = False
+                                    for agent in self.model.grid.get_cell_list_contents(neighbour_cell):
+                                        if agent.type == 0:  # If agent is a robot
+                                            robot_in_cell = True
+                                    if not robot_in_cell:
+                                        free_neighbours.append(neighbour_cell)
+                            print("Free neighbours:", free_neighbours)
+                            free_cell = free_neighbours[random.randrange(len(free_neighbours))]
+
+                            # while not neighbour_free:
+                            #     neighbour_cell_i = random.randrange(len(neighbours))
+                            #     neighbour_cell = neighbours[neighbour_cell_i]
+                            #     robot_in_cell = False
+                            #     for agent in self.model.grid.get_cell_list_contents(neighbour_cell):
+                            #         if agent.type == 0:  # If agent is a robot
+                            #             robot_in_cell = True
+                            #     if not robot_in_cell:
+                            #         if neighbour_cell not in deadlock_cells:
+                            #             neighbour_free = True
+
+                            print("Moving from", self.pos, "to", free_cell)
+                            self.model.grid.move_agent(self, free_cell)
                             self.path_step = 1
 
             elif self.path_step == len(self.path) - 1:
