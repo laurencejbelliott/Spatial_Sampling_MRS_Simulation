@@ -37,89 +37,90 @@ class Robot(Agent):
         self.deadlocked = False
         if self.path is not None:
             if 0 < self.path_step < len(self.path) - 1:
-                # TODO: Detect deadlock (two agents have the same next cell in their path) and stop one robot
                 # Comment the following line to disable cost based collision avoidance
                 self.astar = Astar(self.movement_matrix)
                 self.path = self.astar.run(self.pos, self.goal)
 
                 # Check if next cell in robot path contains another robot
                 if self.path is not None:
-                    if self.path[self.path_step] is not None:
-                        cell_contains_robot = False
-                        for agent in self.model.grid.get_cell_list_contents(tuple(self.path[self.path_step])):
-                            if agent.type == 0:
-                                cell_contains_robot = True
+                    if len(self.path) > 1:
+                        if self.path[self.path_step] is not None:
+                            cell_contains_robot = False
+                            for agent in self.model.grid.get_cell_list_contents(tuple(self.path[self.path_step])):
+                                if agent.type == 0:
+                                    cell_contains_robot = True
 
-                        deadlock_cells = []
-                        if self.model.grid.is_cell_empty(tuple(self.path[self.path_step])) or not cell_contains_robot:
-                            for agent in self.model.schedule.agents:
-                                if agent.type == 0:  # True if the agent is a robot
-                                    if agent.path is not None and len(agent.path) > 0:
-                                        if list(self.pos) == agent.path[agent.path_step]:
-                                            self.deadlocked = True
-                                            deadlock_cells.append(tuple(agent.path[agent.path_step]))
-                                        # try:
-                                        #     if list(self.pos) == agent.path[agent.path_step]:
-                                        #         self.deadlocked = True
-                                        #         deadlock_cells.append(tuple(agent.path[agent.path_step]))
-                                        # except IndexError as e:
-                                        #     print(e)
-                                        #     # pass
+                            deadlock_cells = []
+                            if self.model.grid.is_cell_empty(tuple(self.path[self.path_step])) or not cell_contains_robot:
+                                for agent in self.model.schedule.agents:
+                                    if agent.type == 0:  # True if the agent is a robot
+                                        if agent.path is not None and len(agent.path) > 1:
+                                            if list(self.pos) == agent.path[agent.path_step]:
+                                                self.deadlocked = True
+                                                deadlock_cells.append(tuple(agent.path[agent.path_step]))
+                                            # try:
+                                            #     if list(self.pos) == agent.path[agent.path_step]:
+                                            #         self.deadlocked = True
+                                            #         deadlock_cells.append(tuple(agent.path[agent.path_step]))
+                                            # except IndexError as e:
+                                            #     print(e)
+                                            #     # pass
 
-                            if self.deadlocked:
-                                print("Deadlock detected!")
-                                print(deadlock_cells, "\n")
+                                if self.deadlocked:
+                                    print("Deadlock detected!")
+                                    print(deadlock_cells, "\n")
+                                    neighbours = []
+                                    neighbour_free = False
+                                    for cell in self.model.grid.iter_neighborhood(self.pos, False, False):
+                                        neighbours.append(cell)
+                                    while not neighbour_free:
+                                        neighbour_cell_i = random.randrange(len(neighbours))
+                                        neighbour_cell = neighbours[neighbour_cell_i]
+                                        robot_in_cell = False
+                                        for agent in self.model.grid.get_cell_list_contents(neighbour_cell):
+                                            if agent.type == 0:  # If agent is a robot
+                                                robot_in_cell = True
+                                        if not robot_in_cell:
+                                            if neighbour_cell not in deadlock_cells:
+                                                neighbour_free = True
+                                    print("Moving robot", self.unique_id, "from", self.pos, "to", neighbour_cell)
+                                    self.model.grid.move_agent(self, neighbour_cell)
+                                    self.path_step = 1
+                                else:
+                                    self.model.grid.move_agent(self, tuple(self.path[self.path_step]))
+                                    self.path_step = 1
+                            else:
+                                print("Cell in robot", str(self.unique_id)+"'s", "path occupied")
                                 neighbours = []
-                                neighbour_free = False
                                 for cell in self.model.grid.iter_neighborhood(self.pos, False, False):
                                     neighbours.append(cell)
-                                while not neighbour_free:
-                                    neighbour_cell_i = random.randrange(len(neighbours))
-                                    neighbour_cell = neighbours[neighbour_cell_i]
-                                    robot_in_cell = False
-                                    for agent in self.model.grid.get_cell_list_contents(neighbour_cell):
-                                        if agent.type == 0:  # If agent is a robot
-                                            robot_in_cell = True
-                                    if not robot_in_cell:
-                                        if neighbour_cell not in deadlock_cells:
-                                            neighbour_free = True
-                                print("Moving from", self.pos, "to", neighbour_cell)
-                                self.model.grid.move_agent(self, neighbour_cell)
-                                self.path_step = 1
-                            else:
-                                self.model.grid.move_agent(self, tuple(self.path[self.path_step]))
-                                self.path_step = 1
-                        else:
-                            print("Cell in path occupied")
-                            neighbours = []
-                            for cell in self.model.grid.iter_neighborhood(self.pos, False, False):
-                                neighbours.append(cell)
-                            free_neighbours = []
-                            for neighbour_cell in neighbours:
-                                if neighbour_cell not in deadlock_cells:
-                                    robot_in_cell = False
-                                    for agent in self.model.grid.get_cell_list_contents(neighbour_cell):
-                                        if agent.type == 0:  # If agent is a robot
-                                            robot_in_cell = True
-                                    if not robot_in_cell:
-                                        free_neighbours.append(neighbour_cell)
-                            print("Free neighbours:", free_neighbours)
-                            free_cell = free_neighbours[random.randrange(len(free_neighbours))]
+                                free_neighbours = []
+                                for neighbour_cell in neighbours:
+                                    if neighbour_cell not in deadlock_cells:
+                                        robot_in_cell = False
+                                        for agent in self.model.grid.get_cell_list_contents(neighbour_cell):
+                                            if agent.type == 0:  # If agent is a robot
+                                                robot_in_cell = True
+                                        if not robot_in_cell:
+                                            free_neighbours.append(neighbour_cell)
+                                print("Free neighbours:", free_neighbours)
+                                if len(free_neighbours) > 0:
+                                    free_cell = free_neighbours[random.randrange(len(free_neighbours))]
 
-                            # while not neighbour_free:
-                            #     neighbour_cell_i = random.randrange(len(neighbours))
-                            #     neighbour_cell = neighbours[neighbour_cell_i]
-                            #     robot_in_cell = False
-                            #     for agent in self.model.grid.get_cell_list_contents(neighbour_cell):
-                            #         if agent.type == 0:  # If agent is a robot
-                            #             robot_in_cell = True
-                            #     if not robot_in_cell:
-                            #         if neighbour_cell not in deadlock_cells:
-                            #             neighbour_free = True
+                                    # while not neighbour_free:
+                                    #     neighbour_cell_i = random.randrange(len(neighbours))
+                                    #     neighbour_cell = neighbours[neighbour_cell_i]
+                                    #     robot_in_cell = False
+                                    #     for agent in self.model.grid.get_cell_list_contents(neighbour_cell):
+                                    #         if agent.type == 0:  # If agent is a robot
+                                    #             robot_in_cell = True
+                                    #     if not robot_in_cell:
+                                    #         if neighbour_cell not in deadlock_cells:
+                                    #             neighbour_free = True
 
-                            print("Moving from", self.pos, "to", free_cell)
-                            self.model.grid.move_agent(self, free_cell)
-                            self.path_step = 1
+                                    print("Moving from", self.pos, "to", free_cell)
+                                    self.model.grid.move_agent(self, free_cell)
+                                    self.path_step = 1
 
             elif self.path_step == len(self.path) - 1:
                 self.model.sampled[self.path[self.path_step][1], self.path[self.path_step][0]] = \
@@ -162,6 +163,7 @@ class SpatialSamplingModel(Model):
         self.sampled = np.ones((width, height)) * -1
         self.step_num = 0
         self.num_goals = 0
+        self.all_cells_assigned = False
 
         old_figures = glob.glob(self.figure_dir + '*')
         for f in old_figures:
@@ -231,10 +233,30 @@ class SpatialSamplingModel(Model):
                 if not agent.goal:
                     goal_pos = self.grid.find_empty()
                     if goal_pos is not None:
-                        while self.sampled[goal_pos[1], goal_pos[0]] != -1:
+                        current_goal_cells = []
+                        for a in self.schedule.agents:
+                            if a.type == 0 and a.goal is not None and a.unique_id != agent.unique_id and a.goal != []:
+                                current_goal_cells.append(a.goal)
+                        # print(current_goal_cells)
+                        goal_val_loop_runs = 0
+                        while self.sampled[goal_pos[1], goal_pos[0]] != -1 or \
+                                goal_pos in current_goal_cells:
+                            goal_val_loop_runs += 1
+                            num_unsampled_cells = np.count_nonzero(self.sampled == -1)
+                            if num_unsampled_cells <= len(self.robots):
+                                print(num_unsampled_cells, "unsampled cells remaining for", len(self.robots), "robots")
+                                print("Halting assignment of additional goal cells to robot", agent.unique_id)
+                                self.all_cells_assigned = True
+                                break
+
+                            if goal_val_loop_runs > (self.width * self.height) * 10:
+                                print("Consecutive goal validation loop runs: ", goal_val_loop_runs)
+                                print("Loop stuck?")
+                            if agent.goal in current_goal_cells:
+                                print("Goal", agent.goal, "already assigned in", current_goal_cells)
                             goal_pos = self.grid.find_empty()
                         agent.sample_pos(goal_pos)
-                print("Robot", str(agent.unique_id)+"'s path:", agent.path)
+                # print("Robot", str(agent.unique_id)+"'s path:", agent.path)
         print("")
 
         if -1 not in self.sampled:
