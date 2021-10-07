@@ -11,7 +11,6 @@ from mesa.datacollection import DataCollector
 import numpy as np
 from astar_python import Astar
 from gaussian import makeGaussian
-from matplotlib import pyplot as plt
 
 # TODO: Comment code where necessary for readability
 
@@ -194,26 +193,6 @@ class SpatialSamplingModel(Model):
         self.running = True
         # self.datacollector.collect(self)
 
-    def draw_map(self):
-        plt.close('all')
-        fig = plt.figure()
-        ax = fig.gca()
-        ax.set_xticks(np.arange(0, self.width, 1))
-        ax.set_yticks(np.arange(0, self.height, 1))
-        plt.xlim([0, self.width])
-        plt.ylim([0, self.height])
-        plt.imshow(self.sampled, cmap="gray", interpolation="nearest",
-                   vmin=0, vmax=1)
-
-        for robot in self.robots:
-            plt.scatter(robot.pos[0], robot.pos[1], c=[robot.color])
-        plt.grid()
-        plt.title("Step " + str(self.schedule.time))
-        # plt.show()
-        # plt.savefig(self.figure_dir + "t_" + str(float(env.now)).replace(".", "_"))
-        plt.savefig(self.figure_dir + str(self.schedule.time))
-
-    # TODO: Fix robots being assigned a goal in a cell that is already assigned to another robot
     def step(self):
         self.step_num += 1
         for agent in self.schedule.agents:
