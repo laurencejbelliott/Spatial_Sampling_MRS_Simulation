@@ -16,4 +16,5 @@ Alternatively, you can run the Python script `run.py`.
 If all has been set up correctly, running the simulation should open a web page in your default browser for visualisation.
 It should resemble this screenshot:
 ![A screenshot of the 2D grid visualisation of the multi-robot spatial sampling simulation.](./mesa_spatial_sampling_MRS/spatial_MRS_sim_vis.png "A screenshot of the 2D grid visualisation of the spatial sampling MRS simulation.")
+
 Instructions on using this grid visualisation can be found in the [Grid Visualization section of MESA's advanced tutorial](https://mesa.readthedocs.io/en/master/tutorials/adv_tutorial.html#grid-visualization). 
