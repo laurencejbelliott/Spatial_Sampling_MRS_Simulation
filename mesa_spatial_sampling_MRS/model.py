@@ -1,5 +1,4 @@
 __author__ = "Laurence Roberts-Elliott"
-# TODO: Document dependencies in README
 import os
 import glob
 import random
@@ -16,13 +15,17 @@ from gaussian import makeGaussian
 
 
 class Robot(Agent):
-    # 1 Initialisation
     def __init__(self, pos, model):
+        # Inherits pos(ition) and model attributes from Agent superclass
         super().__init__(pos, model)
         self.pos = pos
+        # The robot is assigned a randomly generated colour for visualisation
         r = lambda: self.model.random.randint(0, 255)
+        # MESA represents colours in Hex, so we convert to this from RGB
         self.color = ("#%02X%02X%02X" % (r(), r(), r()))
+        # Each robot has its own cost map for cost based avoidance of collision with other robots
         self.movement_matrix = np.ones((self.model.width, self.model.height))
+        # The Astar class from `astar-python` provides the A* implementation
         self.astar = Astar(self.movement_matrix)
         self.goal = []
         self.path = []
@@ -31,12 +34,12 @@ class Robot(Agent):
         self.previous_cell = None
         self.deadlocked = False
 
-    # Step function
+    # Each robot will execute this method at the start of a new time step in the simulation
     def step(self):
         self.deadlocked = False
         if self.path is not None:
             if 0 < self.path_step < len(self.path) - 1:
-                # Comment the following line to disable cost based collision avoidance
+                # Comment the following line to disable cost based collision avoidance. Updates the robot's cost map
                 self.astar = Astar(self.movement_matrix)
                 self.path = self.astar.run(self.pos, self.goal)
 
@@ -45,26 +48,24 @@ class Robot(Agent):
                     if len(self.path) > 1:
                         if self.path[self.path_step] is not None:
                             cell_contains_robot = False
+                            # Check if the next cell in the robot's path contains a robot
                             for agent in self.model.grid.get_cell_list_contents(tuple(self.path[self.path_step])):
                                 if agent.type == 0:
                                     cell_contains_robot = True
 
+                            # Check if the next cell in the robot's path is also the next cell in another robot's path
+                            # a.k.a. a deadlock
                             deadlock_cells = []
-                            if self.model.grid.is_cell_empty(tuple(self.path[self.path_step])) or not cell_contains_robot:
+                            if not cell_contains_robot:
                                 for agent in self.model.schedule.agents:
                                     if agent.type == 0:  # True if the agent is a robot
                                         if agent.path is not None and len(agent.path) > 1:
                                             if list(self.pos) == agent.path[agent.path_step]:
                                                 self.deadlocked = True
                                                 deadlock_cells.append(tuple(agent.path[agent.path_step]))
-                                            # try:
-                                            #     if list(self.pos) == agent.path[agent.path_step]:
-                                            #         self.deadlocked = True
-                                            #         deadlock_cells.append(tuple(agent.path[agent.path_step]))
-                                            # except IndexError as e:
-                                            #     print(e)
-                                            #     # pass
 
+                                # If a deadlock or other robot is detected, move this robot to another free neighbouring
+                                # cell
                                 if self.deadlocked:
                                     print("Deadlock detected!")
                                     print(deadlock_cells, "\n")
@@ -85,6 +86,7 @@ class Robot(Agent):
                                     print("Moving robot", self.unique_id, "from", self.pos, "to", neighbour_cell)
                                     self.model.grid.move_agent(self, neighbour_cell)
                                     self.path_step = 1
+                                # If the next cell is not deadlocked, simply move the robot there
                                 else:
                                     self.model.grid.move_agent(self, tuple(self.path[self.path_step]))
                                     self.path_step = 1
@@ -106,24 +108,17 @@ class Robot(Agent):
                                 if len(free_neighbours) > 0:
                                     free_cell = free_neighbours[random.randrange(len(free_neighbours))]
 
-                                    # while not neighbour_free:
-                                    #     neighbour_cell_i = random.randrange(len(neighbours))
-                                    #     neighbour_cell = neighbours[neighbour_cell_i]
-                                    #     robot_in_cell = False
-                                    #     for agent in self.model.grid.get_cell_list_contents(neighbour_cell):
-                                    #         if agent.type == 0:  # If agent is a robot
-                                    #             robot_in_cell = True
-                                    #     if not robot_in_cell:
-                                    #         if neighbour_cell not in deadlock_cells:
-                                    #             neighbour_free = True
-
                                     print("Moving from", self.pos, "to", free_cell)
                                     self.model.grid.move_agent(self, free_cell)
                                     self.path_step = 1
 
+            # If the robot has reached the end of its path, and thus its goal, sample a value from the underlying
+            # distribution
             elif self.path_step == len(self.path) - 1:
                 self.model.sampled[self.path[self.path_step][1], self.path[self.path_step][0]] = \
                     self.model.gaussian[self.path[self.path_step][0], self.path[self.path_step][1]]
+                # For the purpose of visualisation in MESA, the sampled cell is instantiated as an agent and placed on
+                # the grid to shade the cell according to the sampled value
                 agent = SampledCell(self.goal, self.model, self.model.gaussian[self.path[self.path_step][0],
                                                                                self.path[self.path_step][1]])
                 self.model.grid.place_agent(agent, self.goal)
@@ -132,6 +127,7 @@ class Robot(Agent):
                 self.path = []
                 self.path_step = 0
 
+    # Assigns a goal to the robot to sample a value at the given goal position
     def sample_pos(self, goal_pos):
         self.goal = goal_pos
         print("Robot", self.unique_id, "assigned task at", self.goal, "at step", self.model.step_num)
@@ -139,8 +135,8 @@ class Robot(Agent):
         self.path_step = 1
 
 
+# A class to represent a sampled cell as a MESA agent to enable visualisation of the sampled value on the grid
 class SampledCell(Agent):
-    # 1 Initialisation
     def __init__(self, pos, model, value=0):
         super().__init__(pos, model)
         self.pos = pos
@@ -155,28 +151,20 @@ class SpatialSamplingModel(Model):
         self.width = width
         self.num_robots = num_robots
         self.robots = []
-        self.figure_dir = "../sim_visualisation/"
+        # Agents are instantiated simultaneously
         self.schedule = SimultaneousActivation(self)
+        # The grid is multi-layered, and does not loop at the edges
         self.grid = MultiGrid(width, height, torus=False)
+        # An underlying 2D Gaussian distribution is created for the robots to sample values from
+        # At present this can only be a square matrix, hence only using the height
         self.gaussian = makeGaussian(height)
         self.sampled = np.ones((width, height)) * -1
         self.step_num = 0
         self.num_goals = 0
         self.all_cells_assigned = False
 
-        old_figures = glob.glob(self.figure_dir + '*')
-        for f in old_figures:
-            os.remove(f)
-        # Measured in m/s, max speed of Leo rover
-        # self.robot_speed = 0.4
-
-        # self.datacollector = DataCollector(
-        #     # {"happy": "happy"},  # Model-level count of happy agents
-        #     # For testing purposes an agent's individual x and y
-        #     {"x": lambda a: a.pos[0], "y": lambda a: a.pos[1]}
-        # )
-
-        # Set up agents
+        # Place robots in grid at random locations, continuously re-assigning these when the location already contains
+        # another robot
         starting_positions = []
         for rob_id in range(self.num_robots):
             x = self.random.randrange(1, width)
@@ -188,10 +176,11 @@ class SpatialSamplingModel(Model):
             agent = Robot((x, y), self)
             self.robots.append(agent)
             self.grid.place_agent(agent, (x, y))
+            # Adds the robot to the scheduler, so that its step function will be called each time step
             self.schedule.add(agent)
 
+        # Start running the simulation
         self.running = True
-        # self.datacollector.collect(self)
 
     def step(self):
         self.step_num += 1
@@ -199,6 +188,7 @@ class SpatialSamplingModel(Model):
             if agent.type == 0:  # True if the agent is a robot
                 agent.movement_matrix = np.ones((self.width, self.height))
 
+        # Create costs in the neighbourhoods of other robots in each robot's movement cost map
         for agent in self.schedule.agents:
             if agent.type == 0:  # True if the agent is a robot
                 current_agent_id = agent.unique_id
@@ -209,43 +199,48 @@ class SpatialSamplingModel(Model):
                             for cell in self.grid.iter_neighborhood((current_agent_pos[0], current_agent_pos[1]), False,
                                                                     True, radius=2):
                                 other_agent.movement_matrix[cell[1], cell[0]] = 10
+
+                # If the current robot in the iteration has no goal, assign it one at an unsampled cell
                 if not agent.goal:
                     goal_pos = self.grid.find_empty()
                     if goal_pos is not None:
+                        # Create a list of all other robots' goals to check for and reassign any duplicate goals
                         current_goal_cells = []
                         for a in self.schedule.agents:
                             if a.type == 0 and a.goal is not None and a.unique_id != agent.unique_id and a.goal != []:
                                 current_goal_cells.append(a.goal)
-                        # print(current_goal_cells)
                         goal_val_loop_runs = 0
+                        # Ensure that the goal cell has not been sampled or assigned to another robot
                         while self.sampled[goal_pos[1], goal_pos[0]] != -1 or \
                                 goal_pos in current_goal_cells:
                             goal_val_loop_runs += 1
                             num_unsampled_cells = np.count_nonzero(self.sampled == -1)
+                            # Prevents assignment of goals when all remaining unsampled cells have already been assigned
+                            # as sampling goals to the robots
                             if num_unsampled_cells <= len(self.robots):
                                 print(num_unsampled_cells, "unsampled cells remaining for", len(self.robots), "robots")
                                 print("Halting assignment of additional goal cells to robot", agent.unique_id)
                                 self.all_cells_assigned = True
                                 break
 
+                            # For debugging, informs the user if the goal validation loop has run an excessive number of
+                            # times and therefore may be stuck. Can be useful to set a breakpoint here if the loop gets
+                            # stuck
                             if goal_val_loop_runs > (self.width * self.height) * 10:
                                 print("Consecutive goal validation loop runs: ", goal_val_loop_runs)
                                 print("Loop stuck?")
                             if agent.goal in current_goal_cells:
                                 print("Goal", agent.goal, "already assigned in", current_goal_cells)
                             goal_pos = self.grid.find_empty()
+                        # Finally assign the goal to the robot, after the goal has been validated, i.e. it is for an as
+                        # yet unsampled cell, does not contain another robot, and is not already assigned to another
+                        # robot
                         agent.sample_pos(goal_pos)
-                # print("Robot", str(agent.unique_id)+"'s path:", agent.path)
         print("")
 
+        # Stop the simulation when all cells have been sampled by the robots
         if -1 not in self.sampled:
             self.running = False
 
-        # Run one step of the model.
+        # Run one step of the model
         self.schedule.step()
-
-        # Collect data
-        # self.datacollector.collect(self)
-
-        # if self.happy == self.schedule.get_agent_count():
-        #     self.running = False
