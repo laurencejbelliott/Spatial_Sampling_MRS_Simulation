@@ -9,8 +9,10 @@ from mesa.time import SimultaneousActivation
 from mesa.space import MultiGrid
 from mesa.datacollection import DataCollector
 import numpy as np
+import matplotlib.pyplot as plt
 from astar_python import Astar
 from gaussian import makeGaussian
+from kriging_utils.kriging import predict_by_kriging
 
 
 class Robot(Agent):
@@ -133,6 +135,53 @@ class Robot(Agent):
                 self.goal = []
                 self.path = []
                 self.path_step = 0
+
+                # Perform kriging interpolation from sampled values
+                # Define parameters (Explanations are in kriging.py)
+                xgrid = np.arange(1, self.model.width + 1, 1)
+                ygrid = np.arange(1, self.model.height + 1, 1)
+
+                # print(np.shape(self.model.sampled))
+                sampled_cells = np.where(np.array(self.model.sampled) != -1)
+                sampled_cells = list(zip(sampled_cells[1], sampled_cells[0]))
+
+                if len(sampled_cells) > 1:
+                    x_arr = []
+                    y_arr = []
+                    o_arr = []
+                    for sampled_cell in sampled_cells:
+                        # print(sampled_cell)
+                        x_arr.append(sampled_cell[0])
+                        y_arr.append(sampled_cell[1])
+                        val = self.model.sampled[sampled_cell[1], sampled_cell[0]]
+                        # print(val, "\n")
+                        o_arr.append(val)
+
+                    # print(x_arr)
+                    # print(y_arr)
+                    # print(o_arr)
+
+                    variogram = 'gaussian'
+
+                    # Run prediction
+                    m, v = predict_by_kriging(xgrid, ygrid, x_arr, y_arr, o_arr, variogram=variogram)
+
+                    # Export as images
+                    plt.figure('Mean')
+                    plt.imshow(m, origin="lower")
+                    plt.savefig('Mean.png')
+                    plt.figure('Variance')
+                    plt.imshow(v, origin="lower")
+                    plt.savefig('Variance.png')
+
+                    # Sort indices of variance into ascending order
+                    v_ind_sorted = np.unravel_index(np.argsort(v, axis=None), v.shape)
+
+                    # Print indices of x highest variance cells (candidate goals)
+                    # where x is the number of robots
+                    candidate_goals = [[v_ind_sorted[1][-r],
+                                       v_ind_sorted[0][-r]] for r in range(1, len(self.model.robots))]
+                    print(candidate_goals)
 
     # Assigns a goal to the robot to sample a value at the given goal position
     def sample_pos(self, goal_pos):
