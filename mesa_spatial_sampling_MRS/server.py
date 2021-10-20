@@ -20,14 +20,18 @@ def draw(agent):
 width = 10
 height = 10
 canvas_element = CanvasGrid(draw, width, height, 500, 500)
+RMSE_chart = ChartModule([{"Label": "RMSE",
+                           "Color": "Black"}],
+                         data_collector_name="data_collector",
+                         canvas_height=500)
 
 # Model parameterised and instantiated
 model_params = {
     "height": height,
     "width": width,
-    "num_robots": 10
+    "num_robots": 3
 }
 
 server = ModularServer(
-    SpatialSamplingModel, [canvas_element], "Spatial Sampling MRS", model_params
+    SpatialSamplingModel, [canvas_element, RMSE_chart], "Spatial Sampling MRS", model_params
 )

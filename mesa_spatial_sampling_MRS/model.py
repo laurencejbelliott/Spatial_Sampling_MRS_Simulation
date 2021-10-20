@@ -138,8 +138,8 @@ class Robot(Agent):
 
                 # Perform kriging interpolation from sampled values
                 # Define parameters (Explanations are in kriging.py)
-                xgrid = np.arange(1, self.model.width + 1, 1)
-                ygrid = np.arange(1, self.model.height + 1, 1)
+                xgrid = np.arange(0, self.model.width, 1)
+                ygrid = np.arange(0, self.model.height, 1)
 
                 # print(np.shape(self.model.sampled))
                 sampled_cells = np.where(np.array(self.model.sampled) != -1)
@@ -166,6 +166,9 @@ class Robot(Agent):
                     # Run prediction
                     m, v = predict_by_kriging(xgrid, ygrid, x_arr, y_arr, o_arr, variogram=variogram)
 
+                    self.model.RMSE = np.mean(np.power(np.array(self.model.gaussian) - m, 2))
+                    print("RMSE:", self.model.RMSE)
+
                     # Export as images
                     plt.figure('Mean')
                     plt.imshow(m, origin="lower")
@@ -179,9 +182,9 @@ class Robot(Agent):
 
                     # Print indices of x highest variance cells (candidate goals)
                     # where x is the number of robots
-                    candidate_goals = [[v_ind_sorted[1][-r],
-                                       v_ind_sorted[0][-r]] for r in range(1, len(self.model.robots))]
-                    print(candidate_goals)
+                    self.model.candidate_goals = [[v_ind_sorted[1][-r],
+                                                  v_ind_sorted[0][-r]] for r in range(1, len(self.model.robots) + 1)]
+                    print("Candidate goals:", self.model.candidate_goals)
 
     # Assigns a goal to the robot to sample a value at the given goal position
     def sample_pos(self, goal_pos):
@@ -215,6 +218,10 @@ class SpatialSamplingModel(Model):
         self.width = width
         self.num_robots = num_robots
         self.robots = []
+        self.RMSE = 0
+
+        self.data_collector = DataCollector(model_reporters={"RMSE": "RMSE"})
+
         # Agents are instantiated simultaneously
         self.schedule = SimultaneousActivation(self)
         # The grid is multi-layered, and does not loop at the edges
@@ -226,6 +233,7 @@ class SpatialSamplingModel(Model):
         self.sampled = np.ones((width, height)) * -1
         self.step_num = 0
         self.num_goals = 0
+        self.candidate_goals = []
         self.all_cells_assigned = False
 
         # Place UnsampledCell agents for visualisation of unsampled cells
@@ -273,6 +281,7 @@ class SpatialSamplingModel(Model):
                 # If the current robot in the iteration has no goal, assign it one at an unsampled cell
                 if not agent.goal:
                     goal_pos = (random.randrange(0, self.width), random.randrange(0, self.height))
+
                     if goal_pos is not None:
                         # Create a list of all other robots' goals to check for and reassign any duplicate goals
                         current_goal_cells = []
@@ -340,6 +349,8 @@ class SpatialSamplingModel(Model):
                         # robot
                         agent.sample_pos(goal_pos)
         print("")
+
+        self.data_collector.collect(self)
 
         # Stop the simulation when all cells have been sampled by the robots
         if -1 not in self.sampled:
