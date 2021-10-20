@@ -280,74 +280,98 @@ class SpatialSamplingModel(Model):
 
                 # If the current robot in the iteration has no goal, assign it one at an unsampled cell
                 if not agent.goal:
-                    goal_pos = (random.randrange(0, self.width), random.randrange(0, self.height))
+                    goal_ind = 0
+                    if len(self.candidate_goals) < 1:
+                        goal_pos = (random.randrange(0, self.width), random.randrange(0, self.height))
+                    else:
+                        goal_pos = tuple(self.candidate_goals[goal_ind])
 
-                    if goal_pos is not None:
-                        # Create a list of all other robots' goals to check for and reassign any duplicate goals
+                    # Create a list of all other robots' goals to check for and reassign any duplicate goals
+                    current_goal_cells = []
+                    for a in self.schedule.agents:
+                        if a.type == 0 and a.goal is not None and a.unique_id != agent.unique_id and a.goal != []:
+                            current_goal_cells.append(a.goal)
+
+                    while goal_pos in current_goal_cells:
+                        goal_ind += 1
+                        if len(self.candidate_goals) < 1:
+                            goal_pos = (random.randrange(0, self.width), random.randrange(0, self.height))
+                        else:
+                            goal_pos = tuple(self.candidate_goals[goal_ind])
+
                         current_goal_cells = []
                         for a in self.schedule.agents:
                             if a.type == 0 and a.goal is not None and a.unique_id != agent.unique_id and a.goal != []:
                                 current_goal_cells.append(a.goal)
-                        goal_val_loop_runs = 0
 
-                        # Check goal cell for SampledCell agent (i.e. already sampled)
-                        goal_cell_already_sampled = True
-                        for a in self.grid.get_cell_list_contents(goal_pos):
-                            if a.type == 2:
-                                goal_cell_already_sampled = False
-
-                        if goal_cell_already_sampled:
-                            print("Goal cell already sampled")
-
-                        # Ensure that the goal cell has not been sampled or assigned to another robot
-                        while self.sampled[goal_pos[1], goal_pos[0]] != -1 or goal_pos in current_goal_cells or\
-                                goal_cell_already_sampled:
-                            goal_val_loop_runs += 1
-
-                            # For debugging, informs the user if the goal validation loop has run an excessive number of
-                            # times and therefore may be stuck. Can be useful to set a breakpoint here if the loop gets
-                            # stuck
-                            if goal_val_loop_runs > (self.width * self.height) * 10:
-                                print("Consecutive goal validation loop runs: ", goal_val_loop_runs)
-                                print("Loop stuck?")
-                            if agent.goal in current_goal_cells:
-                                print("Goal", agent.goal, "already assigned in", current_goal_cells)
-
-                            goal_pos = (random.randrange(0, self.width), random.randrange(0, self.height))
-
-                            num_unsampled_cells = np.count_nonzero(self.sampled == -1)
-                            if num_unsampled_cells == 0:
-                                break
-
-                            # Check goal cell for SampledCell agent (i.e. already sampled)
-                            goal_cell_already_sampled = True
-                            for a in self.grid.get_cell_list_contents(goal_pos):
-                                if a.type == 2:
-                                    goal_cell_already_sampled = False
-                            if goal_cell_already_sampled:
-                                continue
-
-                            # Prevents assignment of goals when all remaining unsampled cells have already been assigned
-                            # as sampling goals to the robots
-                            if num_unsampled_cells <= len(self.robots):
-                                print(num_unsampled_cells, "unsampled cells remaining for", len(self.robots), "robots")
-
-                                unsampled_cells = np.where(self.sampled == -1)
-                                unsampled_cells = set(zip(unsampled_cells[1], unsampled_cells[0]))
-                                print("Goal cells:", set(current_goal_cells), "len:", len(set(current_goal_cells)))
-                                print("Unsampled cells:", unsampled_cells, "len:", len(unsampled_cells))
-                                print("Goal cells are a subset of unsampled cells:",
-                                      set(current_goal_cells).issubset(unsampled_cells))
-                                if unsampled_cells == set(current_goal_cells):
-                                    print("All unsampled cells assigned")
-
-                                print("Halting assignment of additional goal cells to robot", agent.unique_id)
-                                self.all_cells_assigned = True
-                                break
+                    # goal_pos = (random.randrange(0, self.width), random.randrange(0, self.height))
+                    #
+                    # if goal_pos is not None:
+                    #     # Create a list of all other robots' goals to check for and reassign any duplicate goals
+                    #     current_goal_cells = []
+                    #     for a in self.schedule.agents:
+                    #         if a.type == 0 and a.goal is not None and a.unique_id != agent.unique_id and a.goal != []:
+                    #             current_goal_cells.append(a.goal)
+                    #     goal_val_loop_runs = 0
+                    #
+                    #     # Check goal cell for SampledCell agent (i.e. already sampled)
+                    #     goal_cell_already_sampled = True
+                    #     for a in self.grid.get_cell_list_contents(goal_pos):
+                    #         if a.type == 2:
+                    #             goal_cell_already_sampled = False
+                    #
+                    #     if goal_cell_already_sampled:
+                    #         print("Goal cell already sampled")
+                    #
+                    #     # Ensure that the goal cell has not been sampled or assigned to another robot
+                    #     while self.sampled[goal_pos[1], goal_pos[0]] != -1 or goal_pos in current_goal_cells or\
+                    #             goal_cell_already_sampled:
+                    #         goal_val_loop_runs += 1
+                    #
+                    #         # For debugging, informs the user if the goal validation loop has run an excessive number of
+                    #         # times and therefore may be stuck. Can be useful to set a breakpoint here if the loop gets
+                    #         # stuck
+                    #         if goal_val_loop_runs > (self.width * self.height) * 10:
+                    #             print("Consecutive goal validation loop runs: ", goal_val_loop_runs)
+                    #             print("Loop stuck?")
+                    #         if agent.goal in current_goal_cells:
+                    #             print("Goal", agent.goal, "already assigned in", current_goal_cells)
+                    #
+                    #         goal_pos = (random.randrange(0, self.width), random.randrange(0, self.height))
+                    #
+                    #         num_unsampled_cells = np.count_nonzero(self.sampled == -1)
+                    #         if num_unsampled_cells == 0:
+                    #             break
+                    #
+                    #         # Check goal cell for SampledCell agent (i.e. already sampled)
+                    #         goal_cell_already_sampled = True
+                    #         for a in self.grid.get_cell_list_contents(goal_pos):
+                    #             if a.type == 2:
+                    #                 goal_cell_already_sampled = False
+                    #         if goal_cell_already_sampled:
+                    #             continue
+                    #
+                    #         # Prevents assignment of goals when all remaining unsampled cells have already been assigned
+                    #         # as sampling goals to the robots
+                    #         if num_unsampled_cells <= len(self.robots):
+                    #             print(num_unsampled_cells, "unsampled cells remaining for", len(self.robots), "robots")
+                    #
+                    #             unsampled_cells = np.where(self.sampled == -1)
+                    #             unsampled_cells = set(zip(unsampled_cells[1], unsampled_cells[0]))
+                    #             print("Goal cells:", set(current_goal_cells), "len:", len(set(current_goal_cells)))
+                    #             print("Unsampled cells:", unsampled_cells, "len:", len(unsampled_cells))
+                    #             print("Goal cells are a subset of unsampled cells:",
+                    #                   set(current_goal_cells).issubset(unsampled_cells))
+                    #             if unsampled_cells == set(current_goal_cells):
+                    #                 print("All unsampled cells assigned")
+                    #
+                    #             print("Halting assignment of additional goal cells to robot", agent.unique_id)
+                    #             self.all_cells_assigned = True
+                    #             break
                         # Finally assign the goal to the robot, after the goal has been validated, i.e. it is for an as
                         # yet unsampled cell, does not contain another robot, and is not already assigned to another
                         # robot
-                        agent.sample_pos(goal_pos)
+                    agent.sample_pos(goal_pos)
         print("")
 
         self.data_collector.collect(self)
