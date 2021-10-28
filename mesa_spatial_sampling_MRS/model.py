@@ -3,7 +3,7 @@ import os
 import glob
 import random
 
-import mesa
+import pandas as pd
 from mesa import Model, Agent
 from mesa.time import SimultaneousActivation
 from mesa.space import MultiGrid
@@ -144,6 +144,8 @@ class Robot(Agent):
                 # print(np.shape(self.model.sampled))
                 sampled_cells = np.where(np.array(self.model.sampled) != -1)
                 sampled_cells = list(zip(sampled_cells[1], sampled_cells[0]))
+                self.model.num_samples = len(sampled_cells)
+                print(self.model.num_samples)
 
                 if len(sampled_cells) > 1:
                     x_arr = []
@@ -167,15 +169,18 @@ class Robot(Agent):
                     m, v = predict_by_kriging(xgrid, ygrid, x_arr, y_arr, o_arr, variogram=variogram)
 
                     self.model.RMSE = np.mean(np.power(np.array(self.model.gaussian) - m, 2))
-                    print("RMSE:", self.model.RMSE)
+                    self.model.avg_variance = np.mean(v)
+                    # print("RMSE:", self.model.RMSE)
 
                     # Export as images
                     plt.figure('Mean')
                     plt.imshow(m, origin="lower")
                     plt.savefig('Mean.png')
+                    plt.close()
                     plt.figure('Variance')
                     plt.imshow(v, origin="lower")
                     plt.savefig('Variance.png')
+                    plt.close()
 
                     # Sort indices of variance into ascending order
                     v_ind_sorted = np.unravel_index(np.argsort(v, axis=None), v.shape)
@@ -219,6 +224,11 @@ class SpatialSamplingModel(Model):
         self.num_robots = num_robots
         self.robots = []
         self.RMSE = 999
+        self.avg_variance = 999
+        self.RMSEs = []
+        self.variance_avgs = []
+        self.num_samples = 0
+        self.num_samples_col = []
 
         self.data_collector = DataCollector(model_reporters={"RMSE": "RMSE"})
 
@@ -310,10 +320,34 @@ class SpatialSamplingModel(Model):
                     agent.sample_pos(goal_pos)
         print("")
 
+        if self.RMSE < 999:
+            self.RMSEs.append(self.RMSE)
+        else:
+            self.RMSEs.append(pd.NA)
+
+        if self.avg_variance < 999:
+            self.variance_avgs.append(self.avg_variance)
+        else:
+            self.variance_avgs.append(pd.NA)
+
+        sampled_cells = np.where(np.array(self.sampled) != -1)
+        sampled_cells = list(zip(sampled_cells[1], sampled_cells[0]))
+        self.num_samples = len(sampled_cells)
+        self.num_samples_col.append(self.num_samples)
+
         self.data_collector.collect(self)
 
         # Stop the simulation when all cells have been sampled by the robots
         if -1 not in self.sampled or self.RMSE < 0.01:
+            metrics = pd.DataFrame({
+                "Time step": range(1, len(self.RMSEs) + 1),
+                "RMSE": self.RMSEs,
+                "Average variance": self.variance_avgs,
+                "Number of cells sampled": self.num_samples_col
+            })
+            metrics.set_index("Time step")
+            print(metrics)
+            metrics.to_csv("metrics.csv")
             self.running = False
 
         # Run one step of the model
