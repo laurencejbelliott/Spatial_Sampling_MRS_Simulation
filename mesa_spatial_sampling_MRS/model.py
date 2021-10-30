@@ -35,6 +35,14 @@ class Robot(Agent):
         self.previous_cell = None
         self.deadlocked = False
         self.distance_travelled = 0
+        self.visited = np.zeros((self.model.width, self.model.height))
+        self.visited[self.pos[1], self.pos[0]] += 1
+
+        # Export visited cells as image
+        plt.figure("Robot " + str(self.unique_id) + " visited cells")
+        plt.imshow(self.visited, origin="lower")
+        plt.savefig("visited_cells_vis/robot_" + str(self.unique_id) + "_visited_cells.png")
+        plt.close()
 
     # Each robot will execute this method at the start of a new time step in the simulation
     def step(self):
@@ -89,11 +97,14 @@ class Robot(Agent):
                                     self.model.grid.move_agent(self, neighbour_cell)
                                     self.path_step = 1
                                     self.distance_travelled += 1
+                                    self.visited[neighbour_cell[1], neighbour_cell[0]] += 1
+
                                 # If the next cell is not deadlocked, simply move the robot there
                                 else:
                                     self.model.grid.move_agent(self, tuple(self.path[self.path_step]))
                                     self.path_step = 1
                                     self.distance_travelled += 1
+                                    self.visited[self.path[self.path_step][1], self.path[self.path_step][0]] += 1
                             else:
                                 print("Cell", tuple(self.path[self.path_step]), "in robot", str(self.unique_id)+"'s", "path occupied")
                                 neighbours = []
@@ -116,6 +127,7 @@ class Robot(Agent):
                                     self.model.grid.move_agent(self, free_cell)
                                     self.path_step = 1
                                     self.distance_travelled += 1
+                                    self.visited[free_cell[1], free_cell[0]] += 1
 
             # If the robot has reached the end of its path, and thus its goal, sample a value from the underlying
             # distribution
@@ -235,6 +247,11 @@ class SpatialSamplingModel(Model):
         self.num_samples_col = []
         self.robot_travel_distances = {}
 
+        # Delete old figures
+        old_figures = glob.glob("visited_cells_vis/*")
+        for f in old_figures:
+            os.remove(f)
+
         self.data_collector = DataCollector(model_reporters={"RMSE": "RMSE"})
 
         # Agents are instantiated simultaneously
@@ -246,6 +263,7 @@ class SpatialSamplingModel(Model):
         # At present this can only be a square matrix, hence only using the height
         self.gaussian = makeGaussian(height)
         self.sampled = np.ones((width, height)) * -1
+        self.visited = np.zeros((width, height))
         self.step_num = 0
         self.num_goals = 0
         self.candidate_goals = []
@@ -281,6 +299,22 @@ class SpatialSamplingModel(Model):
 
     def step(self):
         self.step_num += 1
+
+        # Export visited cells as images
+
+        combined_cells_visited = np.zeros((self.width, self.height))
+        for agent in self.schedule.agents:
+            if agent.type == 0:  # True if the agent is a robot
+                plt.figure("Robot " + str(agent.unique_id) + " visited cells")
+                plt.imshow(agent.visited, origin="lower")
+                plt.savefig("visited_cells_vis/robot_" + str(agent.unique_id) + "_visited_cells.png")
+                plt.close()
+                combined_cells_visited += agent.visited
+
+        plt.figure("Combined visited cells")
+        plt.imshow(combined_cells_visited, origin="lower")
+        plt.savefig("visited_cells_vis/combined_visited_cells.png")
+        plt.close()
 
         # Create costs in the neighbourhoods of other robots in each robot's movement cost map
         for agent in self.schedule.agents:
