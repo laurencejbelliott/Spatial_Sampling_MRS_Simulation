@@ -34,6 +34,7 @@ class Robot(Agent):
         self.type = 0  # Agent type 0 is a robot
         self.previous_cell = None
         self.deadlocked = False
+        self.distance_travelled = 0
 
     # Each robot will execute this method at the start of a new time step in the simulation
     def step(self):
@@ -87,10 +88,12 @@ class Robot(Agent):
                                     print("Moving robot", self.unique_id, "from", self.pos, "to", neighbour_cell)
                                     self.model.grid.move_agent(self, neighbour_cell)
                                     self.path_step = 1
+                                    self.distance_travelled += 1
                                 # If the next cell is not deadlocked, simply move the robot there
                                 else:
                                     self.model.grid.move_agent(self, tuple(self.path[self.path_step]))
                                     self.path_step = 1
+                                    self.distance_travelled += 1
                             else:
                                 print("Cell", tuple(self.path[self.path_step]), "in robot", str(self.unique_id)+"'s", "path occupied")
                                 neighbours = []
@@ -112,6 +115,7 @@ class Robot(Agent):
                                     print("Moving from", self.pos, "to", free_cell)
                                     self.model.grid.move_agent(self, free_cell)
                                     self.path_step = 1
+                                    self.distance_travelled += 1
 
             # If the robot has reached the end of its path, and thus its goal, sample a value from the underlying
             # distribution
@@ -229,6 +233,7 @@ class SpatialSamplingModel(Model):
         self.variance_avgs = []
         self.num_samples = 0
         self.num_samples_col = []
+        self.robot_travel_distances = {}
 
         self.data_collector = DataCollector(model_reporters={"RMSE": "RMSE"})
 
@@ -267,14 +272,15 @@ class SpatialSamplingModel(Model):
             # Adds the robot to the scheduler, so that its step function will be called each time step
             self.schedule.add(agent)
 
+        for agent in self.schedule.agents:
+            if agent.type == 0:  # True if the agent is a robot
+                self.robot_travel_distances[str(agent.unique_id)] = []
+
         # Start running the simulation
         self.running = True
 
     def step(self):
         self.step_num += 1
-        for agent in self.schedule.agents:
-            if agent.type == 0:  # True if the agent is a robot
-                agent.movement_matrix = np.ones((self.width, self.height))
 
         # Create costs in the neighbourhoods of other robots in each robot's movement cost map
         for agent in self.schedule.agents:
@@ -335,6 +341,11 @@ class SpatialSamplingModel(Model):
         self.num_samples = len(sampled_cells)
         self.num_samples_col.append(self.num_samples)
 
+        # Get total distance travelled by each robot
+        for agent in self.schedule.agents:
+            if agent.type == 0:  # True if the agent is a robot
+                self.robot_travel_distances[str(agent.unique_id)].append(agent.distance_travelled)
+
         self.data_collector.collect(self)
 
         # Stop the simulation when all cells have been sampled by the robots
@@ -346,6 +357,10 @@ class SpatialSamplingModel(Model):
                 "Number of cells sampled": self.num_samples_col
             })
             metrics.set_index("Time step")
+
+            for robot in self.robot_travel_distances.keys():
+                metrics["Robot " + robot + " distance travelled"] = self.robot_travel_distances[robot]
+
             print(metrics)
             metrics.to_csv("metrics.csv")
             self.running = False
