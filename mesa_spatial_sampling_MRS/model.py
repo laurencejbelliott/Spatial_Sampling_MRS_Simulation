@@ -3,6 +3,7 @@ import os
 import glob
 import random
 
+import matplotlib.colors
 import pandas as pd
 from mesa import Model, Agent
 from mesa.time import SimultaneousActivation
@@ -37,12 +38,13 @@ class Robot(Agent):
         self.distance_travelled = 0
         self.visited = np.zeros((self.model.width, self.model.height))
         self.visited[self.pos[1], self.pos[0]] += 1
+        self.trajectory = [self.pos]
 
-        # Export visited cells as image
-        plt.figure("Robot " + str(self.unique_id) + " visited cells")
-        plt.imshow(self.visited, origin="lower")
-        plt.savefig("visited_cells_vis/robot_" + str(self.unique_id) + "_visited_cells.png")
-        plt.close()
+        # # Export visited cells as image
+        # plt.figure("Robot " + str(self.unique_id) + " visited cells")
+        # plt.imshow(self.visited, origin="lower", cmap="gray")
+        # plt.savefig("visited_cells_vis/robot_" + str(self.unique_id) + "_visited_cells.png")
+        # plt.close()
 
     # Each robot will execute this method at the start of a new time step in the simulation
     def step(self):
@@ -98,6 +100,7 @@ class Robot(Agent):
                                     self.path_step = 1
                                     self.distance_travelled += 1
                                     self.visited[neighbour_cell[1], neighbour_cell[0]] += 1
+                                    self.trajectory.append(neighbour_cell)
 
                                 # If the next cell is not deadlocked, simply move the robot there
                                 else:
@@ -105,6 +108,7 @@ class Robot(Agent):
                                     self.path_step = 1
                                     self.distance_travelled += 1
                                     self.visited[self.path[self.path_step][1], self.path[self.path_step][0]] += 1
+                                    self.trajectory.append(self.path[self.path_step])
                             else:
                                 print("Cell", tuple(self.path[self.path_step]), "in robot", str(self.unique_id)+"'s", "path occupied")
                                 neighbours = []
@@ -128,6 +132,7 @@ class Robot(Agent):
                                     self.path_step = 1
                                     self.distance_travelled += 1
                                     self.visited[free_cell[1], free_cell[0]] += 1
+                                    self.trajectory.append(free_cell)
 
             # If the robot has reached the end of its path, and thus its goal, sample a value from the underlying
             # distribution
@@ -190,11 +195,15 @@ class Robot(Agent):
 
                     # Export as images
                     plt.figure('Mean')
+                    plt.title("Values Predicted by Kriging Interpolation")
                     plt.imshow(m, origin="lower")
+                    plt.colorbar()
                     plt.savefig('Mean.png')
                     plt.close()
                     plt.figure('Variance')
+                    plt.title("Kriging Variance")
                     plt.imshow(v, origin="lower")
+                    plt.colorbar()
                     plt.savefig('Variance.png')
                     plt.close()
 
@@ -300,22 +309,6 @@ class SpatialSamplingModel(Model):
     def step(self):
         self.step_num += 1
 
-        # Export visited cells as images
-
-        combined_cells_visited = np.zeros((self.width, self.height))
-        for agent in self.schedule.agents:
-            if agent.type == 0:  # True if the agent is a robot
-                plt.figure("Robot " + str(agent.unique_id) + " visited cells")
-                plt.imshow(agent.visited, origin="lower")
-                plt.savefig("visited_cells_vis/robot_" + str(agent.unique_id) + "_visited_cells.png")
-                plt.close()
-                combined_cells_visited += agent.visited
-
-        plt.figure("Combined visited cells")
-        plt.imshow(combined_cells_visited, origin="lower")
-        plt.savefig("visited_cells_vis/combined_visited_cells.png")
-        plt.close()
-
         # Create costs in the neighbourhoods of other robots in each robot's movement cost map
         for agent in self.schedule.agents:
             if agent.type == 0:  # True if the agent is a robot
@@ -397,6 +390,47 @@ class SpatialSamplingModel(Model):
 
             print(metrics)
             metrics.to_csv("metrics.csv")
+
+            # Export visited cells as images
+            combined_cells_visited = np.zeros((self.width, self.height))
+            trajectory_plot_info = {}
+            for agent in self.schedule.agents:
+                if agent.type == 0:  # True if the agent is a robot
+                    ax = plt.figure("Robot " + str(agent.unique_id) + " visited cells").gca()
+                    ax.yaxis.get_major_locator().set_params(integer=True)
+                    ax.xaxis.get_major_locator().set_params(integer=True)
+                    plt.imshow(agent.visited, origin="lower", cmap="gray")
+
+                    trajectory_plot_info[agent.unique_id] = {
+                        "x": [agent.trajectory[t][0] for t in range(len(agent.trajectory))],
+                        "y": [agent.trajectory[t][1] for t in range(len(agent.trajectory))],
+                        "c": agent.color
+                    }
+
+                    plt.plot(trajectory_plot_info[agent.unique_id]["x"],
+                             trajectory_plot_info[agent.unique_id]["y"],
+                             c=trajectory_plot_info[agent.unique_id]["c"])
+
+                    plt.colorbar()
+                    plt.title("Map of Cells Visited by Robot " + str(agent.unique_id))
+                    plt.savefig("visited_cells_vis/robot_" + str(agent.unique_id) + "_visited_cells.png")
+                    plt.close()
+                    combined_cells_visited += agent.visited
+
+            ax = plt.figure("Combined visited cells").gca()
+            ax.yaxis.get_major_locator().set_params(integer=True)
+            ax.xaxis.get_major_locator().set_params(integer=True)
+            plt.imshow(combined_cells_visited, origin="lower", cmap="gray")
+            for robot_id in trajectory_plot_info.keys():
+                plt.plot(trajectory_plot_info[robot_id]["x"],
+                         trajectory_plot_info[robot_id]["y"],
+                         c=trajectory_plot_info[robot_id]["c"])
+            plt.title("Combined Map of Visited Cells")
+            plt.legend(["Robot "+str(robot_id) for robot_id in trajectory_plot_info.keys()])
+            plt.colorbar()
+            plt.savefig("visited_cells_vis/combined_visited_cells.png")
+            plt.close()
+
             self.running = False
 
         # Run one step of the model
