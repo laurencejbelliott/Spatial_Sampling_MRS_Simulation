@@ -3,7 +3,6 @@ import os
 import glob
 import random
 
-import matplotlib.colors
 import pandas as pd
 from mesa import Model, Agent
 from mesa.time import SimultaneousActivation
@@ -39,6 +38,8 @@ class Robot(Agent):
         self.visited = np.zeros((self.model.width, self.model.height))
         self.visited[self.pos[1], self.pos[0]] += 1
         self.trajectory = [self.pos]
+        self.idle_time = 0
+        self.waiting_time = 0
 
         # # Export visited cells as image
         # plt.figure("Robot " + str(self.unique_id) + " visited cells")
@@ -216,6 +217,9 @@ class Robot(Agent):
                                                   v_ind_sorted[0][-r]] for r in range(1, len(self.model.robots) + 1)]
                     print("Candidate goals:", self.model.candidate_goals)
 
+                    if not self.goal:
+                        self.idle_time += 1
+
     # Assigns a goal to the robot to sample a value at the given goal position
     def sample_pos(self, goal_pos):
         self.goal = goal_pos
@@ -255,6 +259,7 @@ class SpatialSamplingModel(Model):
         self.num_samples = 0
         self.num_samples_col = []
         self.robot_travel_distances = {}
+        self.robot_idle_times = {}
 
         # Delete old figures
         old_figures = glob.glob("visited_cells_vis/*")
@@ -302,6 +307,7 @@ class SpatialSamplingModel(Model):
         for agent in self.schedule.agents:
             if agent.type == 0:  # True if the agent is a robot
                 self.robot_travel_distances[str(agent.unique_id)] = []
+                self.robot_idle_times[str(agent.unique_id)] = []
 
         # Start running the simulation
         self.running = True
@@ -372,6 +378,7 @@ class SpatialSamplingModel(Model):
         for agent in self.schedule.agents:
             if agent.type == 0:  # True if the agent is a robot
                 self.robot_travel_distances[str(agent.unique_id)].append(agent.distance_travelled)
+                self.robot_idle_times[str(agent.unique_id)].append(agent.idle_time)
 
         self.data_collector.collect(self)
 
@@ -387,6 +394,7 @@ class SpatialSamplingModel(Model):
 
             for robot in self.robot_travel_distances.keys():
                 metrics["Robot " + robot + " distance travelled"] = self.robot_travel_distances[robot]
+                metrics["Robot " + robot + " idle time"] = self.robot_idle_times[robot]
 
             print(metrics)
             metrics.to_csv("metrics.csv")
