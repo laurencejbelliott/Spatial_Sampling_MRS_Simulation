@@ -41,12 +41,6 @@ class Robot(Agent):
         self.idle_time = 0
         self.waiting_time = 0
 
-        # # Export visited cells as image
-        # plt.figure("Robot " + str(self.unique_id) + " visited cells")
-        # plt.imshow(self.visited, origin="lower", cmap="gray")
-        # plt.savefig("visited_cells_vis/robot_" + str(self.unique_id) + "_visited_cells.png")
-        # plt.close()
-
     # Each robot will execute this method at the start of a new time step in the simulation
     def step(self):
         self.deadlocked = False
@@ -111,7 +105,8 @@ class Robot(Agent):
                                     self.visited[self.path[self.path_step][1], self.path[self.path_step][0]] += 1
                                     self.trajectory.append(self.path[self.path_step])
                             else:
-                                print("Cell", tuple(self.path[self.path_step]), "in robot", str(self.unique_id)+"'s", "path occupied")
+                                print("Cell", tuple(self.path[self.path_step]), "in robot", str(self.unique_id)+"'s",
+                                      "path occupied")
                                 neighbours = []
                                 for cell in self.model.grid.iter_neighborhood(self.pos, False, False):
                                     neighbours.append(cell)
@@ -167,7 +162,6 @@ class Robot(Agent):
                 sampled_cells = np.where(np.array(self.model.sampled) != -1)
                 sampled_cells = list(zip(sampled_cells[1], sampled_cells[0]))
                 self.model.num_samples = len(sampled_cells)
-                print(self.model.num_samples)
 
                 if len(sampled_cells) > 1:
                     x_arr = []
@@ -217,8 +211,14 @@ class Robot(Agent):
                                                   v_ind_sorted[0][-r]] for r in range(1, len(self.model.robots) + 1)]
                     print("Candidate goals:", self.model.candidate_goals)
 
-                    if not self.goal:
-                        self.idle_time += 1
+        print("Robot", str(self.unique_id), "current cell:", str(self.pos))
+        print("Robot", str(self.unique_id), "previous cell:", str(self.trajectory[len(self.trajectory) - 2]))
+        print("Robot", str(self.unique_id), "trajectory length:", len(self.trajectory), "\n")
+        if not self.goal:
+            self.idle_time += 1
+        elif self.pos == tuple(self.trajectory[len(self.trajectory) - 2]):
+            self.waiting_time += 1
+            print(self.waiting_time)
 
     # Assigns a goal to the robot to sample a value at the given goal position
     def sample_pos(self, goal_pos):
@@ -260,6 +260,7 @@ class SpatialSamplingModel(Model):
         self.num_samples_col = []
         self.robot_travel_distances = {}
         self.robot_idle_times = {}
+        self.robot_waiting_times = {}
 
         # Delete old figures
         old_figures = glob.glob("visited_cells_vis/*")
@@ -308,6 +309,7 @@ class SpatialSamplingModel(Model):
             if agent.type == 0:  # True if the agent is a robot
                 self.robot_travel_distances[str(agent.unique_id)] = []
                 self.robot_idle_times[str(agent.unique_id)] = []
+                self.robot_waiting_times[str(agent.unique_id)] = []
 
         # Start running the simulation
         self.running = True
@@ -379,11 +381,13 @@ class SpatialSamplingModel(Model):
             if agent.type == 0:  # True if the agent is a robot
                 self.robot_travel_distances[str(agent.unique_id)].append(agent.distance_travelled)
                 self.robot_idle_times[str(agent.unique_id)].append(agent.idle_time)
+                self.robot_waiting_times[str(agent.unique_id)].append(agent.waiting_time)
 
         self.data_collector.collect(self)
 
         # Stop the simulation when all cells have been sampled by the robots
-        if -1 not in self.sampled or self.RMSE < 0.01:
+        # or Root Mean Square Error is below a given value
+        if -1 not in self.sampled or self.RMSE < 0.008:
             metrics = pd.DataFrame({
                 "Time step": range(1, len(self.RMSEs) + 1),
                 "RMSE": self.RMSEs,
@@ -395,6 +399,7 @@ class SpatialSamplingModel(Model):
             for robot in self.robot_travel_distances.keys():
                 metrics["Robot " + robot + " distance travelled"] = self.robot_travel_distances[robot]
                 metrics["Robot " + robot + " idle time"] = self.robot_idle_times[robot]
+                metrics["Robot " + robot + " waiting time"] = self.robot_waiting_times[robot]
 
             print(metrics)
             metrics.to_csv("metrics.csv")
