@@ -132,7 +132,9 @@ class Robot(Agent):
 
             # If the robot has reached the end of its path, and thus its goal, sample a value from the underlying
             # distribution
-            elif self.path_step == len(self.path) - 1:
+            elif self.path_step == len(self.path) - 1 or len(self.path) == 1:
+                if len(self.path) == 1:
+                    self.path_step = 0
                 self.model.sampled[self.path[self.path_step][1], self.path[self.path_step][0]] = \
                     self.model.gaussian[self.path[self.path_step][0], self.path[self.path_step][1]]
 
@@ -163,7 +165,7 @@ class Robot(Agent):
                 sampled_cells = list(zip(sampled_cells[1], sampled_cells[0]))
                 self.model.num_samples = len(sampled_cells)
 
-                if len(sampled_cells) > 1:
+                if len(sampled_cells) >= len(self.model.robots):
                     x_arr = []
                     y_arr = []
                     o_arr = []
@@ -211,9 +213,9 @@ class Robot(Agent):
                                                   v_ind_sorted[0][-r]] for r in range(1, len(self.model.robots) + 1)]
                     print("Candidate goals:", self.model.candidate_goals)
 
-        print("Robot", str(self.unique_id), "current cell:", str(self.pos))
-        print("Robot", str(self.unique_id), "previous cell:", str(self.trajectory[len(self.trajectory) - 2]))
-        print("Robot", str(self.unique_id), "trajectory length:", len(self.trajectory), "\n")
+        # print("Robot", str(self.unique_id), "current cell:", str(self.pos))
+        # print("Robot", str(self.unique_id), "previous cell:", str(self.trajectory[len(self.trajectory) - 2]))
+        # print("Robot", str(self.unique_id), "trajectory length:", len(self.trajectory), "\n")
         if not self.goal:
             self.idle_time += 1
         elif self.pos == tuple(self.trajectory[len(self.trajectory) - 2]):
@@ -329,9 +331,12 @@ class SpatialSamplingModel(Model):
                                                                     True, radius=2):
                                 other_agent.movement_matrix[cell[1], cell[0]] = 10
 
-                # If the current robot in the iteration has no goal, assign it one at an unsampled cell
-                if not agent.goal:
+                if self.step_num == 1:
+                    agent.sample_pos(agent.pos)
+                elif not agent.goal:  # If the current robot in the iteration has no goal
+                    # assign it one at an unsampled cell
                     goal_ind = 0
+
                     if len(self.candidate_goals) < 1:
                         goal_pos = (random.randrange(0, self.width), random.randrange(0, self.height))
                     else:
