@@ -2,6 +2,7 @@ __author__ = "Laurence Roberts-Elliott"
 import os
 import glob
 import random
+import queue
 
 import pandas as pd
 from mesa import Model, Agent
@@ -29,6 +30,8 @@ class Robot(Agent):
         # The Astar class from `astar-python` provides the A* implementation
         self.astar = Astar(self.movement_matrix)
         self.goal = []
+        self.goals = queue.Queue()
+        self.bid = -1
         self.path = []
         self.path_step = 0
         self.type = 0  # Agent type 0 is a robot
@@ -42,6 +45,7 @@ class Robot(Agent):
         self.waiting_time = 0
 
     # Each robot will execute this method at the start of a new time step in the simulation
+    # TODO: Allow goals to be added to a queue
     def step(self):
         self.deadlocked = False
         if self.path is not None:
@@ -210,7 +214,8 @@ class Robot(Agent):
                     # Print indices of x highest variance cells (candidate goals)
                     # where x is the number of robots
                     self.model.candidate_goals = [[v_ind_sorted[1][-r],
-                                                  v_ind_sorted[0][-r]] for r in range(1, len(self.model.robots) + 1)]
+                                                  v_ind_sorted[0][-r]] for r in range(1,
+                                                                                      (len(self.model.robots) + 1))]
                     print("Candidate goals:", self.model.candidate_goals)
 
         # print("Robot", str(self.unique_id), "current cell:", str(self.pos))
@@ -263,6 +268,7 @@ class SpatialSamplingModel(Model):
         self.robot_travel_distances = {}
         self.robot_idle_times = {}
         self.robot_waiting_times = {}
+        self.task_allocation = "SSI"
 
         # Delete old figures
         old_figures = glob.glob("visited_cells_vis/*")
@@ -342,28 +348,49 @@ class SpatialSamplingModel(Model):
                     else:
                         goal_pos = tuple(self.candidate_goals[goal_ind])
 
-                    # Create a list of all other robots' goals to check for and reassign any duplicate goals
-                    current_goal_cells = []
-                    for a in self.schedule.agents:
-                        if a.type == 0 and a.goal is not None and a.unique_id != agent.unique_id and a.goal != []:
-                            current_goal_cells.append(a.goal)
-
-                    while goal_pos in current_goal_cells:
-                        goal_ind += 1
-                        if len(self.candidate_goals) < 1:
-                            goal_pos = (random.randrange(0, self.width), random.randrange(0, self.height))
-                        else:
-                            goal_pos = tuple(self.candidate_goals[goal_ind])
-
+                    if self.task_allocation == "RR":
+                        # Create a list of all other robots' goals to check for and reassign any duplicate goals
                         current_goal_cells = []
                         for a in self.schedule.agents:
                             if a.type == 0 and a.goal is not None and a.unique_id != agent.unique_id and a.goal != []:
                                 current_goal_cells.append(a.goal)
 
-                        # Finally assign the goal to the robot, after the goal has been validated, i.e. it is for an as
-                        # yet unsampled cell, does not contain another robot, and is not already assigned to another
-                        # robot
-                    agent.sample_pos(goal_pos)
+                        while goal_pos in current_goal_cells:
+                            goal_ind += 1
+                            if len(self.candidate_goals) < 1:
+                                goal_pos = (random.randrange(0, self.width), random.randrange(0, self.height))
+                            else:
+                                goal_pos = tuple(self.candidate_goals[goal_ind])
+
+                            current_goal_cells = []
+                            for a in self.schedule.agents:
+                                if a.type == 0 and a.goal is not None and a.unique_id != agent.unique_id and\
+                                        a.goal != []:
+                                    current_goal_cells.append(a.goal)
+
+                            # Finally assign the goal to the robot, after the goal has been validated,
+                            # i.e. it is for an as yet unsampled cell, does not contain another robot,
+                            # and is not already assigned to another robot
+                        agent.sample_pos(goal_pos)
+
+        if self.task_allocation == "SSI":
+            for task in self.candidate_goals:
+                bids = {}
+                for agent in self.schedule.agents:
+                    if agent.type == 0:  # True if the agent is a robot
+                        agent.bid = np.sum([agent.movement_matrix[step[0], step[1]] for step in agent.astar.run(
+                            agent.pos, task)])
+                        print("Robot", str(agent.unique_id), "bid:", str(agent.bid))
+                        bids[str(agent.unique_id)] = agent.bid
+                winning_agent = min(bids, key=bids.get)
+                # print("Winning agent:", winning_agent)
+
+                for agent in self.schedule.agents:
+                    if agent.type == 0:  # True if the agent is a robot
+                        if str(agent.unique_id) == winning_agent:
+                            print("Winning agent:", str(agent.unique_id))
+                            agent.sample_pos(goal_pos)
+
         print("")
 
         if self.RMSE < 999:

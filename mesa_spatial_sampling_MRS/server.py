@@ -17,8 +17,8 @@ def draw(agent):
 
 
 # Grid defined and instantiated
-width = 20
-height = 20
+width = 10
+height = 10
 canvas_element = CanvasGrid(draw, width, height, 500, 500)
 RMSE_chart = ChartModule([{"Label": "RMSE",
                            "Color": "Black"}],
