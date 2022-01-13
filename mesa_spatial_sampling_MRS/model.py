@@ -2,7 +2,6 @@ __author__ = "Laurence Roberts-Elliott"
 import os
 import glob
 import random
-import queue
 
 import pandas as pd
 from mesa import Model, Agent
@@ -30,7 +29,7 @@ class Robot(Agent):
         # The Astar class from `astar-python` provides the A* implementation
         self.astar = Astar(self.movement_matrix)
         self.goal = []
-        self.goals = queue.Queue()
+        self.goals = {}
         self.bid = -1
         self.path = []
         self.path_step = 0
@@ -45,9 +44,39 @@ class Robot(Agent):
         self.waiting_time = 0
 
     # Each robot will execute this method at the start of a new time step in the simulation
-    # TODO: Allow goals to be added to a queue
     def step(self):
         self.deadlocked = False
+        # If the robot has no goal, and only 1 goal in its queue, assign that goal
+        if not self.goal and len(self.goals) == 1:
+            goal_pos = list(self.goals.keys())[0]
+            self.goals.pop(goal_pos)
+            # print(type(goal_pos))
+            goal_pos = goal_pos.strip("',[]()")
+            goal_pos = goal_pos.split(", ")
+            goal_pos = tuple([int(coord) for coord in goal_pos])
+            # print(goal_pos)
+            self.sample_pos(goal_pos)
+            # self.goals.pop(str(goal_pos))
+        elif not self.goal and len(self.goals) > 0:
+            # Recalculate the costs for each of the robot's goal based on its current position
+            for goal in self.goals.keys():
+                # Convert goal position from key to tuple from string
+                goal_tuple = goal.strip("',[]()")
+                goal_tuple = goal_tuple.split(", ")
+                goal_tuple = tuple([int(coord) for coord in goal_tuple])
+                self.goals[goal] = np.sum([self.movement_matrix[step[0], step[1]] for step in self.astar.run(
+                    self.pos, goal_tuple)])
+
+            # Assign the lowest travel cost goal from the robot's goal queue
+            goal_pos = sorted(self.goals)[0]
+            goal_pos = goal_pos.strip("',[]()")
+            goal_pos = goal_pos.split(", ")
+            goal_pos = tuple([int(coord) for coord in goal_pos])
+            print(goal_pos)
+            self.sample_pos(goal_pos)
+            # self.goals.pop(str(goal_pos))
+            # self.sample_pos(tuple(goal_pos))
+
         if self.path is not None:
             if 0 < self.path_step < len(self.path) - 1:
                 # Comment the following line to disable cost based collision avoidance. Updates the robot's cost map
@@ -217,6 +246,8 @@ class Robot(Agent):
                                                   v_ind_sorted[0][-r]] for r in range(1,
                                                                                       (len(self.model.robots) + 1))]
                     print("Candidate goals:", self.model.candidate_goals)
+        elif len(self.goals) > 0:
+            print(self.goals)
 
         # print("Robot", str(self.unique_id), "current cell:", str(self.pos))
         # print("Robot", str(self.unique_id), "previous cell:", str(self.trajectory[len(self.trajectory) - 2]))
@@ -233,6 +264,12 @@ class Robot(Agent):
         print("Robot", self.unique_id, "assigned task at", self.goal, "at step", self.model.step_num)
         self.path = self.astar.run(self.pos, self.goal)
         self.path_step = 1
+
+    def queue_sampling(self, goal_pos):
+        print("Robot", self.unique_id, "added task at", goal_pos, " to queue at step", self.model.step_num)
+        # Add goal to queue with value equal to path cost
+        self.goals[str(goal_pos)] = np.sum([self.movement_matrix[step[0], step[1]] for step in self.astar.run(
+                            self.pos, goal_pos)])
 
 
 # A class to represent a sampled cell as a MESA agent to enable visualisation of the sampled value on the grid
@@ -338,7 +375,7 @@ class SpatialSamplingModel(Model):
                                 other_agent.movement_matrix[cell[1], cell[0]] = 10
 
                 if self.step_num == 1:
-                    agent.sample_pos(agent.pos)
+                    agent.queue_sampling(agent.pos)
                 elif not agent.goal:  # If the current robot in the iteration has no goal
                     # assign it one at an unsampled cell
                     goal_ind = 0
@@ -373,8 +410,11 @@ class SpatialSamplingModel(Model):
                             # and is not already assigned to another robot
                         agent.sample_pos(goal_pos)
 
+        # TODO: Perform a new round of SSI task allocation each time a new value is sampled
+        # rather than at each time step
         if self.task_allocation == "SSI":
             for task in self.candidate_goals:
+                print("Bidding on task at", task)
                 bids = {}
                 for agent in self.schedule.agents:
                     if agent.type == 0:  # True if the agent is a robot
@@ -389,7 +429,8 @@ class SpatialSamplingModel(Model):
                     if agent.type == 0:  # True if the agent is a robot
                         if str(agent.unique_id) == winning_agent:
                             print("Winning agent:", str(agent.unique_id))
-                            agent.sample_pos(goal_pos)
+                            # agent.sample_pos(goal_pos)
+                            agent.queue_sampling(task)
 
         print("")
 
