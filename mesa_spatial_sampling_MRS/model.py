@@ -195,13 +195,13 @@ class Robot(Agent):
                     plt.title("Values Predicted by Kriging Interpolation")
                     plt.imshow(m, origin="lower")
                     plt.colorbar()
-                    plt.savefig('Mean.png')
+                    plt.savefig(self.model.visualisation_dir+'Mean.png')
                     plt.close()
                     plt.figure('Variance')
                     plt.title("Kriging Variance")
                     plt.imshow(v, origin="lower")
                     plt.colorbar()
-                    plt.savefig('Variance.png')
+                    plt.savefig(self.model.visualisation_dir+'Variance.png')
                     plt.close()
 
                     # Sort indices of variance into ascending order
@@ -263,9 +263,13 @@ class SpatialSamplingModel(Model):
         self.robot_travel_distances = {}
         self.robot_idle_times = {}
         self.robot_waiting_times = {}
+        self.task_allocation = "RR"  # 'random' or 'RR' (Round Robin)
+        self.trial_num = 10
+        self.visualisation_dir = "./results/RRTA_3robs_20x20/"+str(self.trial_num)+"/"
 
-        # Delete old figures
-        old_figures = glob.glob("visited_cells_vis/*")
+        # Delete old figures and data
+        # old_figures = glob.glob("visited_cells_vis/*")
+        old_figures = glob.glob(self.visualisation_dir+"*")
         for f in old_figures:
             os.remove(f)
 
@@ -337,7 +341,7 @@ class SpatialSamplingModel(Model):
                     # assign it one at an unsampled cell
                     goal_ind = 0
 
-                    if len(self.candidate_goals) < 1:
+                    if len(self.candidate_goals) < 1 or self.task_allocation == "random":
                         goal_pos = (random.randrange(0, self.width), random.randrange(0, self.height))
                     else:
                         goal_pos = tuple(self.candidate_goals[goal_ind])
@@ -350,7 +354,7 @@ class SpatialSamplingModel(Model):
 
                     while goal_pos in current_goal_cells:
                         goal_ind += 1
-                        if len(self.candidate_goals) < 1:
+                        if len(self.candidate_goals) < 1 or self.task_allocation == "random":
                             goal_pos = (random.randrange(0, self.width), random.randrange(0, self.height))
                         else:
                             goal_pos = tuple(self.candidate_goals[goal_ind])
@@ -392,7 +396,8 @@ class SpatialSamplingModel(Model):
 
         # Stop the simulation when all cells have been sampled by the robots
         # or Root Mean Square Error is below a given value
-        if -1 not in self.sampled or self.RMSE < 0.008:
+        # if -1 not in self.sampled or self.RMSE < 0.008:
+        if self.num_samples >= 50:
             metrics = pd.DataFrame({
                 "Time step": range(1, len(self.RMSEs) + 1),
                 "RMSE": self.RMSEs,
@@ -407,7 +412,7 @@ class SpatialSamplingModel(Model):
                 metrics["Robot " + robot + " waiting time"] = self.robot_waiting_times[robot]
 
             print(metrics)
-            metrics.to_csv("metrics.csv")
+            metrics.to_csv("./results/random_sampling_3robs_20x20/"+str(self.trial_num)+"/"+str(self.trial_num)+".csv")
 
             # Export visited cells as images
             combined_cells_visited = np.zeros((self.width, self.height))
@@ -431,7 +436,8 @@ class SpatialSamplingModel(Model):
 
                     plt.colorbar()
                     plt.title("Map of Cells Visited by Robot " + str(agent.unique_id))
-                    plt.savefig("visited_cells_vis/robot_" + str(agent.unique_id) + "_visited_cells.png")
+                    # plt.savefig("visited_cells_vis/robot_" + str(agent.unique_id) + "_visited_cells.png")
+                    plt.savefig(self.visualisation_dir + str(agent.unique_id) + "_visited_cells.png")
                     plt.close()
                     combined_cells_visited += agent.visited
 
@@ -446,7 +452,7 @@ class SpatialSamplingModel(Model):
             plt.title("Combined Map of Visited Cells")
             plt.legend(["Robot "+str(robot_id) for robot_id in trajectory_plot_info.keys()])
             plt.colorbar()
-            plt.savefig("visited_cells_vis/combined_visited_cells.png")
+            plt.savefig(self.visualisation_dir+"combined_visited_cells.png")
             plt.close()
 
             self.running = False
