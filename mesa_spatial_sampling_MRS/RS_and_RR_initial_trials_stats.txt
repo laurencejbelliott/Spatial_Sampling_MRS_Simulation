@@ -1,0 +1,124 @@
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+     Unnamed: 0  Time step  ...  total idle time  total waiting time
+198       198.0      199.0  ...             57.0                 0.0
+215       215.0      216.0  ...             54.0                 0.0
+198       198.0      199.0  ...             54.0                 0.0
+211       211.0      212.0  ...             54.0                 0.0
+208       208.0      209.0  ...             57.0                 0.0
+185       185.0      186.0  ...             56.0                 0.0
+187       187.0      188.0  ...             52.0                 0.0
+220       220.0      221.0  ...             52.0                 0.0
+220       220.0      221.0  ...             58.0                 0.0
+207       207.0      208.0  ...             54.0                 0.0
+
+[10 rows x 95 columns]
+Mean of Random Sampling metrics:
+ Unnamed: 0                    204.900000
+Time step                     205.900000
+RMSE                            0.009375
+Average variance                0.008627
+Number of cells sampled        50.100000
+                                 ...    
+Robot (13, 5) idle time        20.000000
+Robot (13, 5) waiting time      0.000000
+total distance travelled      559.900000
+total idle time                54.800000
+total waiting time              0.000000
+Length: 95, dtype: float64
+Median of Random Sampling metrics:
+ Unnamed: 0                    207.500000
+Time step                     208.500000
+RMSE                            0.009905
+Average variance                0.005388
+Number of cells sampled        50.000000
+                                 ...    
+Robot (13, 5) idle time        20.000000
+Robot (13, 5) waiting time      0.000000
+total distance travelled      567.000000
+total idle time                54.000000
+total waiting time              0.000000
+Length: 95, dtype: float64
+STD of Random Sampling metrics:
+ Unnamed: 0                    12.564942
+Time step                     12.564942
+RMSE                           0.003221
+Average variance               0.007407
+Number of cells sampled        0.316228
+                                ...    
+Robot (13, 5) idle time             NaN
+Robot (13, 5) waiting time          NaN
+total distance travelled      37.622245
+total idle time                2.097618
+total waiting time             0.000000
+Length: 95, dtype: float64
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+     Unnamed: 0  Time step  ...  total idle time  total waiting time
+196       196.0      197.0  ...             50.0                 0.0
+211       211.0      212.0  ...             50.0                 0.0
+207       207.0      208.0  ...             50.0                 0.0
+162       162.0      163.0  ...             50.0                 0.0
+209       209.0      210.0  ...             52.0                 0.0
+219       219.0      220.0  ...             50.0                 0.0
+218       218.0      219.0  ...             50.0                 0.0
+224       224.0      225.0  ...             50.0                 0.0
+206       206.0      207.0  ...             50.0                 0.0
+218       218.0      219.0  ...             50.0                 0.0
+
+[10 rows x 98 columns]
+Mean of Round Robin metrics:
+ Unnamed: 0                    207.000000
+Time step                     208.000000
+RMSE                            0.010042
+Average variance                0.010529
+Number of cells sampled        50.200000
+                                 ...    
+Robot (5, 13) idle time        15.000000
+Robot (5, 13) waiting time      0.000000
+total distance travelled      570.800000
+total idle time                50.200000
+total waiting time              0.000000
+Length: 98, dtype: float64
+Median of Round Robin metrics:
+ Unnamed: 0                    210.000000
+Time step                     211.000000
+RMSE                            0.010252
+Average variance                0.009916
+Number of cells sampled        50.000000
+                                 ...    
+Robot (5, 13) idle time        15.000000
+Robot (5, 13) waiting time      0.000000
+total distance travelled      579.000000
+total idle time                50.000000
+total waiting time              0.000000
+Length: 98, dtype: float64
+STD of Round Robin metrics:
+ Unnamed: 0                    17.770137
+Time step                     17.770137
+RMSE                           0.000679
+Average variance               0.002655
+Number of cells sampled        0.632456
+                                ...    
+Robot (5, 13) idle time             NaN
+Robot (5, 13) waiting time          NaN
+total distance travelled      53.289148
+total idle time                0.632456
+total waiting time             0.000000
+Length: 98, dtype: float64

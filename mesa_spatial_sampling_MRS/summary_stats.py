@@ -29,6 +29,7 @@ print(df_combined)
 df_combined.to_csv("RS_combined.csv")
 print("Mean of Random Sampling metrics:\n", df_combined.mean())
 print("Median of Random Sampling metrics:\n", df_combined.median())
+print("STD of Random Sampling metrics:\n", df_combined.std())
 
 
 RR_trial_results = []
@@ -55,6 +56,7 @@ df_combined["total idle time"] = total_idle_times
 df_combined["total waiting time"] = total_waiting_times
 
 print(df_combined)
-df_combined.to_csv("RS_combined.csv")
-print("Mean of Random Sampling metrics:\n", df_combined.mean())
-print("Median of Random Sampling metrics:\n", df_combined.median())
+df_combined.to_csv("RR_combined.csv")
+print("Mean of Round Robin metrics:\n", df_combined.mean())
+print("Median of Round Robin metrics:\n", df_combined.median())
+print("STD of Round Robin metrics:\n", df_combined.std())

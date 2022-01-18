@@ -263,9 +263,9 @@ class SpatialSamplingModel(Model):
         self.robot_travel_distances = {}
         self.robot_idle_times = {}
         self.robot_waiting_times = {}
-        self.task_allocation = "RR"  # 'random' or 'RR' (Round Robin)
+        self.task_allocation = "random"  # 'random' or 'RR' (Round Robin)
         self.trial_num = 10
-        self.visualisation_dir = "./results/RRTA_3robs_20x20/"+str(self.trial_num)+"/"
+        self.visualisation_dir = "./results/random_sampling_3robs_20x20/"+str(self.trial_num)+"/"
 
         # Delete old figures and data
         # old_figures = glob.glob("visited_cells_vis/*")
