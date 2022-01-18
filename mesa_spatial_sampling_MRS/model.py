@@ -412,7 +412,7 @@ class SpatialSamplingModel(Model):
                 metrics["Robot " + robot + " waiting time"] = self.robot_waiting_times[robot]
 
             print(metrics)
-            metrics.to_csv("./results/random_sampling_3robs_20x20/"+str(self.trial_num)+"/"+str(self.trial_num)+".csv")
+            metrics.to_csv(self.visualisation_dir+str(self.trial_num)+".csv")
 
             # Export visited cells as images
             combined_cells_visited = np.zeros((self.width, self.height))
