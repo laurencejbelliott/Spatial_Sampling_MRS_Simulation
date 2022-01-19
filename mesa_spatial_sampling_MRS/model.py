@@ -249,7 +249,8 @@ class UnsampledCell(SampledCell):
 
 
 class SpatialSamplingModel(Model):
-    def __init__(self, height=20, width=20, num_robots=2):
+    def __init__(self, height=20, width=20, num_robots=2, task_allocation=random, trial_num=1,
+                 results_dir="./results/random_sampling_3robs_20x20/"):
         self.height = height
         self.width = width
         self.num_robots = num_robots
@@ -263,9 +264,9 @@ class SpatialSamplingModel(Model):
         self.robot_travel_distances = {}
         self.robot_idle_times = {}
         self.robot_waiting_times = {}
-        self.task_allocation = "random"  # 'random' or 'RR' (Round Robin)
-        self.trial_num = 10
-        self.visualisation_dir = "./results/random_sampling_3robs_20x20/"+str(self.trial_num)+"/"
+        self.task_allocation = task_allocation  # 'random' or 'RR' (Round Robin)
+        self.trial_num = trial_num
+        self.visualisation_dir = results_dir+str(self.trial_num)+"/"
 
         # Delete old figures and data
         # old_figures = glob.glob("visited_cells_vis/*")
@@ -273,7 +274,11 @@ class SpatialSamplingModel(Model):
         for f in old_figures:
             os.remove(f)
 
-        self.data_collector = DataCollector(model_reporters={"RMSE": "RMSE"})
+        self.data_collector = DataCollector(model_reporters={
+            "RMSE": "RMSE",
+            "Average Variance": "avg_variance",
+            "Total cells sampled": "num_samples"
+        })
 
         # Agents are instantiated simultaneously
         self.schedule = SimultaneousActivation(self)
@@ -459,3 +464,15 @@ class SpatialSamplingModel(Model):
 
         # Run one step of the model
         self.schedule.step()
+
+    def getRMSE(self):
+        return self.RMSE
+
+    def getAvgVariance(self):
+        return self.avg_variance
+
+    def getNumSamples(self):
+        return self.num_samples
+
+    def getStepNum(self):
+        return self.step_num
