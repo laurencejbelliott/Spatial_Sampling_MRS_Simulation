@@ -1,8 +1,8 @@
 __author__ = "Laurence Roberts-Elliott"
 from model import *
-from mesa.batchrunner import BatchRunner
+from mesa.batchrunner import BatchRunnerMP
 
-RSBatchRunner = BatchRunner(SpatialSamplingModel,
+RSBatchRunner = BatchRunnerMP(SpatialSamplingModel,
                             fixed_parameters={
                                 "width": 20, "height": 20, "task_allocation": "RR", "num_robots": 3,
                                 "results_dir": "./results/RRTA_3robs_20x20/"},
@@ -14,7 +14,8 @@ RSBatchRunner = BatchRunner(SpatialSamplingModel,
                                              "RMSE": SpatialSamplingModel.getRMSE,
                                              "Average Variance": SpatialSamplingModel.getAvgVariance,
                                              "Total cells sampled": SpatialSamplingModel.getNumSamples
-                                             }
+                                             },
+                            nr_processes=10
                             )
 
 RSBatchRunner.run_all()
