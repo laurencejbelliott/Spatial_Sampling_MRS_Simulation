@@ -1,0 +1,16 @@
+,0
+Unnamed: 0,49.5
+trial_num,50.5
+Run,20.0
+Average Variance,0.0055577259535615365
+Average time to complete a task,9.927564638090955
+Maximum visits to a cell,7.0
+RMSE,0.010593198644855134
+Step number,50.0
+Total cells sampled,50.0
+Total distance travelled,545.0
+Total idle time,53.0
+Total waiting time,0.0
+width,20.0
+height,20.0
+num_robots,3.0

@@ -1,0 +1,103 @@
+Mean of Random Sampling metrics:
+ Unnamed: 0                          49.500000
+trial_num                           50.500000
+Run                                 20.000000
+Average Variance                     0.007204
+Average time to complete a task     10.190517
+Maximum visits to a cell            14.300000
+RMSE                                 0.009678
+Step number                         50.250000
+Total cells sampled                 50.250000
+Total distance travelled           546.560000
+Total idle time                     53.120000
+Total waiting time                   0.000000
+width                               20.000000
+height                              20.000000
+num_robots                           3.000000
+dtype: float64
+Median of Random Sampling metrics:
+ Unnamed: 0                          49.500000
+trial_num                           50.500000
+Run                                 20.000000
+Average Variance                     0.005558
+Average time to complete a task      9.927565
+Maximum visits to a cell             7.000000
+RMSE                                 0.010593
+Step number                         50.000000
+Total cells sampled                 50.000000
+Total distance travelled           545.000000
+Total idle time                     53.000000
+Total waiting time                   0.000000
+width                               20.000000
+height                              20.000000
+num_robots                           3.000000
+dtype: float64
+STD of Random Sampling metrics:
+ Unnamed: 0                         29.011492
+trial_num                          29.011492
+Run                                 0.000000
+Average Variance                    0.006342
+Average time to complete a task     1.735244
+Maximum visits to a cell           20.474424
+RMSE                                0.002821
+Step number                         0.500000
+Total cells sampled                 0.500000
+Total distance travelled           75.917063
+Total idle time                     1.816201
+Total waiting time                  0.000000
+width                               0.000000
+height                              0.000000
+num_robots                          0.000000
+dtype: float64 
+
+Mean of Round Robin metrics:
+ Unnamed: 0                          49.500000
+trial_num                           50.500000
+Run                                 20.000000
+Average Variance                     0.009925
+Average time to complete a task     11.436761
+Maximum visits to a cell            15.600000
+RMSE                                 0.009828
+Step number                         50.410000
+Total cells sampled                 50.410000
+Total distance travelled           585.210000
+Total idle time                     50.090000
+Total waiting time                   0.000000
+width                               20.000000
+height                              20.000000
+num_robots                           3.000000
+dtype: float64
+Median of Round Robin metrics:
+ Unnamed: 0                          49.500000
+trial_num                           50.500000
+Run                                 20.000000
+Average Variance                     0.009037
+Average time to complete a task     11.225558
+Maximum visits to a cell             7.000000
+RMSE                                 0.010092
+Step number                         50.000000
+Total cells sampled                 50.000000
+Total distance travelled           584.000000
+Total idle time                     50.000000
+Total waiting time                   0.000000
+width                               20.000000
+height                              20.000000
+num_robots                           3.000000
+dtype: float64
+STD of Round Robin metrics:
+ Unnamed: 0                         29.011492
+trial_num                          29.011492
+Run                                 0.000000
+Average Variance                    0.006533
+Average time to complete a task     1.710355
+Maximum visits to a cell           22.880012
+RMSE                                0.001784
+Step number                         0.668105
+Total cells sampled                 0.668105
+Total distance travelled           71.310857
+Total idle time                     0.287623
+Total waiting time                  0.000000
+width                               0.000000
+height                              0.000000
+num_robots                          0.000000
+dtype: float64

@@ -6,7 +6,7 @@ RS_trial_results = []
 total_distances_travelled = []
 total_idle_times = []
 total_waiting_times = []
-for i in range(1, 11):
+for i in range(1, 51):
     print(i)
     trial_results = pd.read_csv(
         "results/random_sampling_3robs_20x20/"+str(i)+"/"+str(i)+".csv").iloc[-1]
@@ -36,7 +36,7 @@ RR_trial_results = []
 total_distances_travelled = []
 total_idle_times = []
 total_waiting_times = []
-for i in range(1, 11):
+for i in range(1, 51):
     print(i)
     trial_results = pd.read_csv(
         "results/RRTA_3robs_20x20/"+str(i)+"/"+str(i)+".csv").iloc[-1]
