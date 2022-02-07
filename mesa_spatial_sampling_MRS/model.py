@@ -56,6 +56,7 @@ class Robot(Agent):
             goal_pos = tuple([int(coord) for coord in goal_pos])
             # print(goal_pos)
             self.sample_pos(goal_pos)
+            self.model.allocated_tasks.append(goal_pos)
             # self.goals.pop(str(goal_pos))
         elif not self.goal and len(self.goals) > 0:
             # Recalculate the costs for each of the robot's goal based on its current position
@@ -250,11 +251,15 @@ class Robot(Agent):
                                                       v_ind_sorted[0][-r]] for r in range(1,
                                                                                           (len(self.model.robots) + 1))]
                     elif self.model.sampling_strategy == "random":
-                        # Set goals as x highest variance cells (candidate goals)
+                        # Set goals as x random unsampled cells (candidate goals)
                         # where x is the number of robots
-                        self.model.candidate_goals = [[v_ind_sorted[1][-r],
-                                                      v_ind_sorted[0][-r]] for r in range(1,
-                                                                                          (len(self.model.robots) + 1))]
+                        self.model.candidate_goals = []
+                        for x in range(len(self.model.robots)):
+                            goal_pos = (random.randrange(0, self.model.width), random.randrange(0, self.model.height))
+                            while goal_pos in self.model.allocated_tasks:
+                                goal_pos = (random.randrange(0, self.model.width), random.randrange(0, self.model.height))
+                            self.model.candidate_goals.append(goal_pos)
+
                     print("Candidate goals:", self.model.candidate_goals)
 
                     if self.model.task_allocation == "SSI":
@@ -286,6 +291,7 @@ class Robot(Agent):
         # Add goal to queue with value equal to path cost
         self.goals[str(goal_pos)] = np.sum([self.movement_matrix[step[0], step[1]] for step in self.astar.run(
                             self.pos, goal_pos)])
+        self.model.allocated_tasks.append(goal_pos)
 
 
 # A class to represent a sampled cell as a MESA agent to enable visualisation of the sampled value on the grid
@@ -321,8 +327,8 @@ class SpatialSamplingModel(Model):
         self.robot_travel_distances = {}
         self.robot_idle_times = {}
         self.robot_waiting_times = {}
-        self.task_allocation = "RR"  # "RR" or "SSI"
-        self.sampling_strategy = "dynamic"  # "dynamic" or "random"
+        self.task_allocation = "SSI"  # "RR" or "SSI"
+        self.sampling_strategy = "random"  # "dynamic" or "random"
         self.allocated_tasks = []
         self.RR_rob_index = 0
         self.RR_task_index = 0
