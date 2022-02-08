@@ -402,39 +402,6 @@ class SpatialSamplingModel(Model):
 
                 if self.step_num == 1:
                     agent.queue_sampling(agent.pos)
-                # elif not agent.goal:  # If the current robot in the iteration has no goal
-                #     # assign it one at an unsampled cell
-                #     goal_ind = 0
-                #
-                #     # if len(self.candidate_goals) < 1:
-                #     #     goal_pos = (random.randrange(0, self.width), random.randrange(0, self.height))
-                #     # else:
-                #     #     goal_pos = tuple(self.candidate_goals[goal_ind])
-                #
-                #     if self.task_allocation == "RR":
-                #         # Create a list of all other robots' goals to check for and reassign any duplicate goals
-                #         current_goal_cells = []
-                #         for a in self.schedule.agents:
-                #             if a.type == 0 and a.goal is not None and a.unique_id != agent.unique_id and a.goal != []:
-                #                 current_goal_cells.append(a.goal)
-                #
-                #         while goal_pos in current_goal_cells:
-                #             goal_ind += 1
-                #             if len(self.candidate_goals) < 1:
-                #                 goal_pos = (random.randrange(0, self.width), random.randrange(0, self.height))
-                #             else:
-                #                 goal_pos = tuple(self.candidate_goals[goal_ind])
-                #
-                #             current_goal_cells = []
-                #             for a in self.schedule.agents:
-                #                 if a.type == 0 and a.goal is not None and a.unique_id != agent.unique_id and\
-                #                         a.goal != []:
-                #                     current_goal_cells.append(a.goal)
-                #
-                #             # Finally assign the goal to the robot, after the goal has been validated,
-                #             # i.e. it is for an as yet unsampled cell, does not contain another robot,
-                #             # and is not already assigned to another robot
-                #         agent.sample_pos(goal_pos)
         print("")
 
         if self.RMSE < 999:
