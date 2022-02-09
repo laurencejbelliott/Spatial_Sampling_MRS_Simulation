@@ -42,6 +42,10 @@ class Robot(Agent):
         self.trajectory = [self.pos]
         self.idle_time = 0
         self.waiting_time = 0
+        self.task_completion_times = []
+        self.current_task_completion_time = 0
+        self.sampled_cells_x = []
+        self.sampled_cells_y = []
 
     # Each robot will execute this method at the start of a new time step in the simulation
     def step(self):
@@ -69,7 +73,11 @@ class Robot(Agent):
                     self.pos, goal_tuple)])
 
             # Assign the lowest travel cost goal from the robot's goal queue
-            goal_pos = sorted(self.goals)[0]
+
+            if self.model.task_allocation == "RR":
+                goal_pos = sorted(self.goals)[0]
+            else:
+                goal_pos = sorted(self.goals)[0]
             self.goals.pop(goal_pos)
             goal_pos = goal_pos.strip("',[]()")
             goal_pos = goal_pos.split(", ")
@@ -84,6 +92,7 @@ class Robot(Agent):
                 # Comment the following line to disable cost based collision avoidance. Updates the robot's cost map
                 self.astar = Astar(self.movement_matrix)
                 self.path = self.astar.run(self.pos, self.goal)
+                self.current_task_completion_time += 1
 
                 # Check if next cell in robot path contains another robot
                 if self.path is not None:
@@ -191,6 +200,10 @@ class Robot(Agent):
                 self.goal = []
                 self.path = []
                 self.path_step = 0
+                self.task_completion_times.append(self.current_task_completion_time)
+                self.current_task_completion_time = 0
+                self.sampled_cells_x.append(self.pos[0])
+                self.sampled_cells_y.append(self.pos[1])
 
                 # Perform kriging interpolation from sampled values
                 # Define parameters (Explanations are in kriging.py)
@@ -232,13 +245,13 @@ class Robot(Agent):
                     plt.title("Values Predicted by Kriging Interpolation")
                     plt.imshow(m, origin="lower")
                     plt.colorbar()
-                    plt.savefig('Mean.png')
+                    plt.savefig(self.model.visualisation_dir + 'Mean.png')
                     plt.close()
                     plt.figure('Variance')
                     plt.title("Kriging Variance")
                     plt.imshow(v, origin="lower")
                     plt.colorbar()
-                    plt.savefig('Variance.png')
+                    plt.savefig(self.model.visualisation_dir + 'Variance.png')
                     plt.close()
 
                     # Sort indices of variance into ascending order
@@ -285,6 +298,7 @@ class Robot(Agent):
         print("Robot", self.unique_id, "assigned task at", self.goal, "at step", self.model.step_num)
         self.path = self.astar.run(self.pos, self.goal)
         self.path_step = 1
+        self.current_task_completion_time = 0
 
     def queue_sampling(self, goal_pos):
         print("Robot", self.unique_id, "added task at", goal_pos, " to queue at step", self.model.step_num)
@@ -313,7 +327,9 @@ class UnsampledCell(SampledCell):
 
 
 class SpatialSamplingModel(Model):
-    def __init__(self, height=20, width=20, num_robots=2):
+    def __init__(self, height=20, width=20, num_robots=2, task_allocation="SSI", trial_num=1,
+                 sampling_strategy="dynamic",
+                 results_dir="./results/3robs_20x20_grid_sampling_all_cells/"):
         self.height = height
         self.width = width
         self.num_robots = num_robots
@@ -327,14 +343,17 @@ class SpatialSamplingModel(Model):
         self.robot_travel_distances = {}
         self.robot_idle_times = {}
         self.robot_waiting_times = {}
-        self.task_allocation = "SSI"  # "RR" or "SSI"
-        self.sampling_strategy = "random"  # "dynamic" or "random"
+        self.task_allocation = task_allocation  # "RR" or "SSI"
+        self.sampling_strategy = sampling_strategy  # "dynamic" or "random"
         self.allocated_tasks = []
         self.RR_rob_index = 0
         self.RR_task_index = 0
+        self.trial_num = trial_num
+        self.combined_cells_visited = np.zeros((self.width, self.height))
+        self.visualisation_dir = results_dir+str(self.trial_num)+"/"
 
         # Delete old figures
-        old_figures = glob.glob("visited_cells_vis/*")
+        old_figures = glob.glob(self.visualisation_dir+"*")
         for f in old_figures:
             os.remove(f)
 
@@ -445,10 +464,10 @@ class SpatialSamplingModel(Model):
                 metrics["Robot " + robot + " waiting time"] = self.robot_waiting_times[robot]
 
             print(metrics)
-            metrics.to_csv("metrics.csv")
+            metrics.to_csv(self.visualisation_dir+str(self.trial_num)+".csv")
 
             # Export visited cells as images
-            combined_cells_visited = np.zeros((self.width, self.height))
+            self.combined_cells_visited = np.zeros((self.width, self.height))
             trajectory_plot_info = {}
             for agent in self.schedule.agents:
                 if agent.type == 0:  # True if the agent is a robot
@@ -468,23 +487,30 @@ class SpatialSamplingModel(Model):
                              c=trajectory_plot_info[agent.unique_id]["c"])
 
                     plt.colorbar()
+                    plt.scatter(x=agent.sampled_cells_x, y=agent.sampled_cells_y, marker="o",
+                                c=trajectory_plot_info[agent.unique_id]["c"])
                     plt.title("Map of Cells Visited by Robot " + str(agent.unique_id))
-                    plt.savefig("visited_cells_vis/robot_" + str(agent.unique_id) + "_visited_cells.png")
+                    plt.savefig(self.visualisation_dir + str(agent.unique_id) + "_visited_cells.png")
                     plt.close()
-                    combined_cells_visited += agent.visited
+                    self.combined_cells_visited += agent.visited
 
             ax = plt.figure("Combined visited cells").gca()
             ax.yaxis.get_major_locator().set_params(integer=True)
             ax.xaxis.get_major_locator().set_params(integer=True)
-            plt.imshow(combined_cells_visited, origin="lower", cmap="gray")
+            plt.imshow(self.combined_cells_visited, origin="lower", cmap="gray")
+            plt.colorbar()
             for robot_id in trajectory_plot_info.keys():
                 plt.plot(trajectory_plot_info[robot_id]["x"],
                          trajectory_plot_info[robot_id]["y"],
                          c=trajectory_plot_info[robot_id]["c"])
-            plt.title("Combined Map of Visited Cells")
+            for agent in self.schedule.agents:
+                if agent.type == 0:
+                    plt.scatter(x=agent.sampled_cells_x, y=agent.sampled_cells_y, marker="o",
+                                c=trajectory_plot_info[agent.unique_id]["c"])
+
+                plt.title("Combined Map of Visited Cells")
             plt.legend(["Robot "+str(robot_id) for robot_id in trajectory_plot_info.keys()])
-            plt.colorbar()
-            plt.savefig("visited_cells_vis/combined_visited_cells.png")
+            plt.savefig(self.visualisation_dir+"combined_visited_cells.png")
             plt.close()
 
             self.running = False
@@ -522,3 +548,55 @@ class SpatialSamplingModel(Model):
                 self.RR_rob_index = 0
             else:
                 self.RR_rob_index += 1
+
+    def getRMSE(self):
+        return self.RMSE
+
+    def getAvgVariance(self):
+        return self.avg_variance
+
+    def getNumSamples(self):
+        return self.num_samples
+
+    def getStepNum(self):
+        return self.step_num
+
+    def getTotalDistance(self):
+        current_robot_distances = []
+        for distances in self.robot_travel_distances.values():
+            current_robot_distances.append(distances[-1])
+
+        return np.sum(current_robot_distances)
+
+    def getTotalIdleTime(self):
+        current_robot_idle_times = []
+        for idle_times in self.robot_idle_times.values():
+            current_robot_idle_times.append(idle_times[-1])
+
+        return np.sum(current_robot_idle_times)
+
+    def getTotalWaitingTime(self):
+        current_robot_waiting_times = []
+        for waiting_times in self.robot_waiting_times.values():
+            current_robot_waiting_times.append(waiting_times[-1])
+
+        return np.sum(current_robot_waiting_times)
+
+    def getMaxVisits(self):
+        return np.max(self.combined_cells_visited)
+
+    def getTotalTaskCompletionTime(self):
+        task_completion_times = []
+        for agent in self.schedule.agents:
+            if agent.type == 0:
+                task_completion_times.append(np.sum(agent.task_completion_times))
+
+        return np.sum(task_completion_times)
+
+    def getAvgTaskCompletionTime(self):
+        task_completion_times = []
+        for agent in self.schedule.agents:
+            if agent.type == 0:
+                task_completion_times.append(np.mean(agent.task_completion_times))
+
+        return np.mean(task_completion_times)
