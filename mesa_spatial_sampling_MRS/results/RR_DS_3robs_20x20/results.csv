@@ -1,2 +1,2 @@
 ,trial_num,Run,Average Variance,Average time to complete a task,Maximum visits to a cell,RMSE,Step number,Total cells sampled,Total distance travelled,Total idle time,Total waiting time,width,height,task_allocation,num_robots,sampling_strategy,results_dir
-0,1,20,0.012367677301737339,10.926046176046176,20.0,0.007312917804698103,300,74,752,74,0,20,20,RR,3,random,./results/RR_RS_3robs_20x20/
+0,1,20,0.014039691067290217,9.331583240637746,6.0,0.00891443230395569,300,61,744,85,0,20,20,RR,3,dynamic,./results/RR_DS_3robs_20x20/

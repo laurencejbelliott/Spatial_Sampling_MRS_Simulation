@@ -1,7 +1,10 @@
 __author__ = "Laurence Roberts-Elliott"
+
+import json
 import os
 import glob
 import random
+import re
 
 import pandas as pd
 from mesa import Model, Agent
@@ -13,6 +16,7 @@ import matplotlib.pyplot as plt
 from astar_python import Astar
 from gaussian import makeGaussian
 from kriging_utils.kriging import predict_by_kriging
+from scipy.cluster.hierarchy import fclusterdata
 
 
 class Robot(Agent):
@@ -258,11 +262,47 @@ class Robot(Agent):
                     v_ind_sorted = np.unravel_index(np.argsort(v, axis=None), v.shape)
 
                     if self.model.sampling_strategy == "dynamic":
+
+                        # Cluster unsampled cells
+                        # Get unsampled cells and format as N by M matrix (N observations, M dimensions)
+                        unsampled_cells = np.where(np.array(self.model.sampled) == -1)
+                        unsampled_cells = np.array(list(zip(unsampled_cells[1], unsampled_cells[0])))
+
+                        unsampled_clusters = fclusterdata(unsampled_cells, t=len(self.model.robots), criterion='maxclust',
+                                                           metric='euclidean', depth=1, method='centroid')
+                        # print(unsampled_clusters)
+                        plt.scatter(unsampled_cells[:, 0], unsampled_cells[:, 1], c=unsampled_clusters)
+                        plt.savefig(self.model.visualisation_dir+"unsampled_cell_clusters.png")
+
+                        # Split variance cells array into sub-arrays based on cluster
+                        v_clustered = [{} for cluster in range(1, len(set(unsampled_clusters))+1)]
+                        for cell_ix in range(0, len(unsampled_cells)):
+                            cell = unsampled_cells[cell_ix]
+                            cell_cluster = unsampled_clusters[cell_ix]
+                            # print(cell_cluster, "\n")
+                            cell_variance = v[cell[0], cell[1]]
+                            v_clustered[cell_cluster-1][str(cell)] = cell_variance
+
                         # Set goals as x highest variance cells (candidate goals)
                         # where x is the number of robots
-                        self.model.candidate_goals = [[v_ind_sorted[1][-r],
-                                                      v_ind_sorted[0][-r]] for r in range(1,
-                                                                                          (len(self.model.robots) + 1))]
+                        self.model.candidate_goals = []
+                        # cluster_max_vs = []
+                        for cluster in v_clustered:
+                            cluster_max_v_cell_str = max(cluster, key=cluster.get)
+                            cluster_max_v_cell_str = [re.sub("[^0-9]", "", word) for
+                                                      word in cluster_max_v_cell_str.split()]
+                            for word in cluster_max_v_cell_str:
+                                if not word.isdigit():
+                                    cluster_max_v_cell_str.remove(word)
+                            cluster_max_v_cell = [int(word) for word in cluster_max_v_cell_str]
+                            print(cluster_max_v_cell)
+                            self.model.candidate_goals.append(cluster_max_v_cell)
+
+                        # print(cluster_max_vs)
+
+                        # self.model.candidate_goals = [[v_ind_sorted[1][-r],
+                        #                               v_ind_sorted[0][-r]] for r in range(1,
+                        #                                                                   (len(self.model.robots) + 1))]
                     elif self.model.sampling_strategy == "random":
                         # Set goals as x random unsampled cells (candidate goals)
                         # where x is the number of robots
@@ -327,9 +367,12 @@ class UnsampledCell(SampledCell):
 
 
 class SpatialSamplingModel(Model):
-    def __init__(self, height=20, width=20, num_robots=2, task_allocation="SSI", trial_num=1,
+    def __init__(self, height=20, width=20, num_robots=2, task_allocation="SSI", trial_num=2,
                  sampling_strategy="dynamic",
                  results_dir="./results/3robs_20x20_grid_sampling_all_cells/"):
+        super(SpatialSamplingModel, self).__init__(seed=trial_num)
+        self.random.seed(trial_num)
+        random.seed(trial_num)
         self.height = height
         self.width = width
         self.num_robots = num_robots
