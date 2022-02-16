@@ -268,8 +268,12 @@ class Robot(Agent):
                         unsampled_cells = np.where(np.array(self.model.sampled) == -1)
                         unsampled_cells = np.array(list(zip(unsampled_cells[1], unsampled_cells[0])))
 
-                        unsampled_clusters = fclusterdata(unsampled_cells, t=len(self.model.robots), criterion='maxclust',
-                                                           metric='euclidean', depth=1, method='centroid')
+                        unsampled_clusters = fclusterdata(unsampled_cells,
+                                                          t=self.model.width/(len(self.model.robots)/3),
+                                                          criterion='distance',
+                                                          metric='euclidean',
+                                                          depth=1,
+                                                          method='complete')
                         # print(unsampled_clusters)
                         plt.scatter(unsampled_cells[:, 0], unsampled_cells[:, 1], c=unsampled_clusters)
                         plt.savefig(self.model.visualisation_dir+"unsampled_cell_clusters.png")
@@ -298,6 +302,7 @@ class Robot(Agent):
                             print(cluster_max_v_cell)
                             self.model.candidate_goals.append(cluster_max_v_cell)
 
+                        print("Num. clusters:", len(self.model.candidate_goals))
                         # print(cluster_max_vs)
 
                         # self.model.candidate_goals = [[v_ind_sorted[1][-r],
@@ -345,6 +350,10 @@ class Robot(Agent):
         # Add goal to queue with value equal to path cost
         self.goals[str(goal_pos)] = np.sum([self.movement_matrix[step[0], step[1]] for step in self.astar.run(
                             self.pos, goal_pos)])
+
+        # TODO: Insertion heuristic
+        #   (insert task where it least increases the cost of navigating to the queued tasks)
+
         self.model.allocated_tasks.append(goal_pos)
 
 
@@ -367,7 +376,7 @@ class UnsampledCell(SampledCell):
 
 
 class SpatialSamplingModel(Model):
-    def __init__(self, height=20, width=20, num_robots=2, task_allocation="SSI", trial_num=2,
+    def __init__(self, height=20, width=20, num_robots=2, task_allocation="SSI", trial_num=1,
                  sampling_strategy="dynamic",
                  results_dir="./results/3robs_20x20_grid_sampling_all_cells/"):
         super(SpatialSamplingModel, self).__init__(seed=trial_num)
