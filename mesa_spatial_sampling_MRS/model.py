@@ -115,7 +115,8 @@ class Robot(Agent):
                 agent = SampledCell(self.goal, self.model, self.model.gaussian[self.path[self.path_step][0],
                                                                                self.path[self.path_step][1]])
                 self.model.grid.place_agent(agent, tuple(self.goal))
-                print("Robot", self.unique_id, "sampled value", agent.value, "at", self.goal)
+                if self.model.verbose:
+                    print("Robot", self.unique_id, "sampled value", agent.value, "at", self.goal)
                 self.goal = []
                 self.path = []
                 self.path_step = 0
@@ -214,10 +215,12 @@ class Robot(Agent):
                                 if not word.isdigit():
                                     cluster_max_v_cell_str.remove(word)
                             cluster_max_v_cell = [int(word) for word in cluster_max_v_cell_str]
-                            print(cluster_max_v_cell)
+                            if self.model.verbose:
+                                print(cluster_max_v_cell)
                             self.model.candidate_goals.append(cluster_max_v_cell)
 
-                        print("Num. clusters:", len(self.model.candidate_goals))
+                        if self.model.verbose:
+                            print("Num. clusters:", len(self.model.candidate_goals))
                         # print(cluster_max_vs)
 
                         # self.model.candidate_goals = [[v_ind_sorted[1][-r],
@@ -230,10 +233,14 @@ class Robot(Agent):
                         for x in range(len(self.model.robots)):
                             goal_pos = (random.randrange(0, self.model.width), random.randrange(0, self.model.height))
                             while goal_pos in self.model.allocated_tasks:
-                                goal_pos = (random.randrange(0, self.model.width), random.randrange(0, self.model.height))
+                                # goal_pos = (random.randrange(0, self.model.width), random.randrange(0, self.model.height))
+                                goal_pos = random.choice([[x, y] for x in range(self.model.width) for
+                                                          y in range(self.model.height) if
+                                                         [x, y] not in self.model.allocated_tasks])
                             self.model.candidate_goals.append(goal_pos)
 
-                    print("Candidate goals:", self.model.candidate_goals)
+                    if self.model.verbose:
+                        print("Candidate goals:", self.model.candidate_goals)
 
                     if self.model.task_allocation == "SSI":
                         self.model.SSI_TA()
@@ -271,8 +278,9 @@ class Robot(Agent):
                                 # If a deadlock or other robot is detected, move this robot to another free neighbouring
                                 # cell
                                 if self.deadlocked:
-                                    print("Deadlock detected!")
-                                    print(deadlock_cells, "\n")
+                                    if self.model.verbose:
+                                        print("Deadlock detected!")
+                                        print(deadlock_cells, "\n")
                                     neighbours = []
                                     neighbour_free = False
                                     for cell in self.model.grid.iter_neighborhood(self.pos, False, False):
@@ -287,7 +295,8 @@ class Robot(Agent):
                                         if not robot_in_cell:
                                             if neighbour_cell not in deadlock_cells:
                                                 neighbour_free = True
-                                    print("Moving robot", self.unique_id, "from", self.pos, "to", neighbour_cell)
+                                    if self.model.verbose:
+                                        print("Moving robot", self.unique_id, "from", self.pos, "to", neighbour_cell)
                                     self.model.grid.move_agent(self, neighbour_cell)
                                     self.path_step = 1
                                     self.distance_travelled += 1
@@ -302,8 +311,9 @@ class Robot(Agent):
                                     self.visited[self.path[self.path_step][1], self.path[self.path_step][0]] += 1
                                     self.trajectory.append(self.path[self.path_step])
                             else:
-                                print("Cell", tuple(self.path[self.path_step]), "in robot", str(self.unique_id)+"'s",
-                                      "path occupied")
+                                if self.model.verbose:
+                                    print("Cell", tuple(self.path[self.path_step]), "in robot", str(self.unique_id)+"'s",
+                                          "path occupied")
                                 neighbours = []
                                 for cell in self.model.grid.iter_neighborhood(self.pos, False, False):
                                     neighbours.append(cell)
@@ -316,11 +326,13 @@ class Robot(Agent):
                                                 robot_in_cell = True
                                         if not robot_in_cell:
                                             free_neighbours.append(neighbour_cell)
-                                print("Free neighbours:", free_neighbours)
+                                if self.model.verbose:
+                                    print("Free neighbours:", free_neighbours)
                                 if len(free_neighbours) > 0:
                                     free_cell = free_neighbours[random.randrange(len(free_neighbours))]
 
-                                    print("Moving from", self.pos, "to", free_cell)
+                                    if self.model.verbose:
+                                        print("Moving from", self.pos, "to", free_cell)
                                     self.model.grid.move_agent(self, free_cell)
                                     self.path_step = 1
                                     self.distance_travelled += 1
@@ -337,19 +349,22 @@ class Robot(Agent):
             self.idle_time += 1
         elif self.pos == tuple(self.trajectory[len(self.trajectory) - 2]):
             self.waiting_time += 1
-            print(self.waiting_time)
+            if self.model.verbose:
+                print(self.waiting_time)
 
     # Assigns a goal to the robot to sample a value at the given goal position
     def sample_pos(self, goal_pos):
         self.goal = goal_pos
-        print("Robot", self.unique_id, "assigned task at", self.goal, "at step", self.model.step_num)
+        if self.model.verbose:
+            print("Robot", self.unique_id, "assigned task at", self.goal, "at step", self.model.step_num)
         self.path = self.astar.run(self.pos, self.goal)
         self.path_step = 1
         self.current_task_completion_time = 0
 
     def queue_sampling(self, goal_pos):
         if goal_pos not in self.model.allocated_tasks and goal_pos not in self.goals:
-            print("Robot", self.unique_id, "added task at", goal_pos, " to queue at step", self.model.step_num)
+            if self.model.verbose:
+                print("Robot", self.unique_id, "added task at", goal_pos, " to queue at step", self.model.step_num)
             # # Add goal to queue with value equal to path cost
             # self.goals[str(goal_pos)] = np.sum([self.movement_matrix[step[0], step[1]] for step in self.astar.run(
             #                     self.pos, goal_pos)])
@@ -360,22 +375,25 @@ class Robot(Agent):
                 best_queue_cost = -1
                 best_queue = []
                 for i in range(len(self.goals)+1):
-                    candidate_goal_queue = copy.copy(self.goals)
-                    candidate_goal_queue.insert(i, goal_pos)
+                    try:
+                        candidate_goal_queue = copy.copy(self.goals)
+                        candidate_goal_queue.insert(i, goal_pos)
 
-                    queue_cost = 0
-                    for j in range(len(candidate_goal_queue)):
-                        if j > 0:
-                            prev_goal = candidate_goal_queue[j-1]
-                            queue_cost += np.sum([self.movement_matrix[step[0], step[1]] for
-                                                  step in self.astar.run(prev_goal, candidate_goal_queue[j])])
-                        else:
-                            queue_cost += np.sum([self.movement_matrix[step[0], step[1]] for step in self.astar.run(
-                                self.pos, goal_pos)])
-                    # print(queue_cost)
-                    if best_queue_cost == -1 or best_queue_cost > queue_cost:
-                        best_queue_cost = queue_cost
-                        best_queue = candidate_goal_queue
+                        queue_cost = 0
+                        for j in range(len(candidate_goal_queue)):
+                            if j > 0:
+                                prev_goal = candidate_goal_queue[j-1]
+                                queue_cost += np.sum([self.movement_matrix[step[0], step[1]] for
+                                                      step in self.astar.run(prev_goal, candidate_goal_queue[j])])
+                            else:
+                                queue_cost += np.sum([self.movement_matrix[step[0], step[1]] for step in self.astar.run(
+                                    self.pos, goal_pos)])
+                        # print(queue_cost)
+                        if best_queue_cost == -1 or best_queue_cost > queue_cost:
+                            best_queue_cost = queue_cost
+                            best_queue = candidate_goal_queue
+                    except TypeError:
+                        pass
                 self.goals = best_queue
             else:
                 # Add goal to queue
@@ -403,9 +421,10 @@ class UnsampledCell(SampledCell):
 
 
 class SpatialSamplingModel(Model):
-    def __init__(self, height=20, width=20, num_robots=2, task_allocation="SSI", trial_num=2,
+    def __init__(self, height=20, width=20, num_robots=2, task_allocation="RR", trial_num=1,
                  sampling_strategy="dynamic",
-                 results_dir="./results/3robs_20x20_grid_sampling_all_cells/"):
+                 results_dir="./results/3robs_20x20_grid_sampling_all_cells/",
+                 verbose=True):
         super(SpatialSamplingModel, self).__init__(seed=trial_num)
         self.random.seed(trial_num)
         random.seed(trial_num)
@@ -430,6 +449,7 @@ class SpatialSamplingModel(Model):
         self.trial_num = trial_num
         self.combined_cells_visited = np.zeros((self.width, self.height))
         self.visualisation_dir = results_dir+str(self.trial_num)+"/"
+        self.verbose = verbose
 
         # Delete old figures
         old_figures = glob.glob(self.visualisation_dir+"*")
@@ -500,7 +520,8 @@ class SpatialSamplingModel(Model):
 
                 if self.step_num == 1:
                     agent.queue_sampling(agent.pos)
-        print("")
+        if self.verbose:
+            print("")
 
         if self.RMSE < 999:
             self.RMSEs.append(self.RMSE)
@@ -600,14 +621,16 @@ class SpatialSamplingModel(Model):
     def SSI_TA(self):
         for task in self.candidate_goals:
             if task not in self.allocated_tasks:
-                print("Bidding on task at", task)
+                if self.verbose:
+                    print("Bidding on task at", task)
                 bids = {}
                 for agent in self.schedule.agents:
                     if agent.type == 0:  # True if the agent is a robot
                         try:
                             agent.bid = np.sum([agent.movement_matrix[step[0], step[1]] for step in agent.astar.run(
                                 agent.pos, tuple(task))])
-                            print("Robot", str(agent.unique_id), "bid:", str(agent.bid))
+                            if self.verbose:
+                                print("Robot", str(agent.unique_id), "bid:", str(agent.bid))
                             bids[str(agent.unique_id)] = agent.bid
                         except TypeError:
                             pass
@@ -619,7 +642,8 @@ class SpatialSamplingModel(Model):
                 for agent in self.schedule.agents:
                     if agent.type == 0:  # True if the agent is a robot
                         if str(agent.unique_id) == winning_agent:
-                            print("Winning agent:", str(agent.unique_id))
+                            if self.verbose:
+                                print("Winning agent:", str(agent.unique_id))
                             # agent.sample_pos(goal_pos)
                             agent.queue_sampling(task)
 
