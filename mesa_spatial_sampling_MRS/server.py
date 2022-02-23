@@ -2,6 +2,9 @@ from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.modules import CanvasGrid, ChartModule, TextElement
 from mesa.visualization.UserParam import UserSettableParameter
 from model import SpatialSamplingModel
+import numpy as np
+
+import pickle
 
 
 # Draws robots and sampled cells (both modelled as agents) in their respective shapes and layers of the grid
@@ -17,9 +20,12 @@ def draw(agent):
 
 
 # Grid defined and instantiated
-width = 20
-height = 20
-canvas_element = CanvasGrid(draw, width, height, 500, 500)
+with open(r"interpolated_jaime_compaction_0cm_kpas.pickle", "rb") as f:
+    interpolated_compaction_data = pickle.load(f)
+
+width = np.shape(interpolated_compaction_data)[1]
+height = np.shape(interpolated_compaction_data)[0]
+canvas_element = CanvasGrid(draw, width, height, width*10, height*10)
 RMSE_chart = ChartModule([{"Label": "RMSE",
                            "Color": "Black"}],
                          data_collector_name="data_collector",

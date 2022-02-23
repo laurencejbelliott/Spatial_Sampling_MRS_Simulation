@@ -5,6 +5,7 @@ import glob
 import random
 import re
 import copy
+import pickle
 
 import pandas as pd
 from mesa import Model, Agent
@@ -42,7 +43,7 @@ class Robot(Agent):
         self.deadlocked = False
         self.distance_travelled = 0
         self.visited = np.zeros((self.model.width, self.model.height))
-        self.visited[self.pos[1], self.pos[0]] += 1
+        self.visited[self.pos[0], self.pos[1]] += 1
         self.trajectory = [self.pos]
         self.idle_time = 0
         self.waiting_time = 0
@@ -101,14 +102,17 @@ class Robot(Agent):
             if list(self.pos) == list(self.goal):
                 if len(self.path) == 1:
                     self.path_step = 0
-                self.model.sampled[self.path[self.path_step][1], self.path[self.path_step][0]] = \
+                self.model.sampled[self.path[self.path_step][0], self.path[self.path_step][1]] = \
                     self.model.gaussian[self.path[self.path_step][0], self.path[self.path_step][1]]
 
                 # Check goal cell for SampledCell agent (i.e. already sampled)
+                sampled_cells_to_del = []
                 for a in self.model.grid.get_cell_list_contents((self.path[self.path_step][0],
                                                                  self.path[self.path_step][1])):
                     if a.type == 2:
-                        self.model.grid.remove_agent(a)
+                        sampled_cells_to_del.append(a)
+                for a in sampled_cells_to_del:
+                    self.model.grid.remove_agent(a)
 
                 # For the purpose of visualisation in MESA, the sampled cell is instantiated as an agent and placed on
                 # the grid to shade the cell according to the sampled value
@@ -156,7 +160,7 @@ class Robot(Agent):
                     # Run prediction
                     m, v = predict_by_kriging(xgrid, ygrid, x_arr, y_arr, o_arr, variogram=variogram)
 
-                    self.model.RMSE = np.mean(np.power(np.array(self.model.gaussian) - m, 2))
+                    self.model.RMSE = np.mean(np.power(np.array(self.model.gaussian).swapaxes(0, 1) - m, 2))
                     self.model.avg_variance = np.mean(v)
                     # print("RMSE:", self.model.RMSE)
 
@@ -357,7 +361,7 @@ class Robot(Agent):
         self.goal = goal_pos
         if self.model.verbose:
             print("Robot", self.unique_id, "assigned task at", self.goal, "at step", self.model.step_num)
-        self.path = self.astar.run(self.pos, self.goal)
+        self.path = self.astar.run(np.array(self.pos) - [1, 1], np.array(self.goal) - [1, 1])
         self.path_step = 1
         self.current_task_completion_time = 0
 
@@ -428,8 +432,13 @@ class SpatialSamplingModel(Model):
         super(SpatialSamplingModel, self).__init__(seed=trial_num)
         self.random.seed(trial_num)
         random.seed(trial_num)
-        self.height = height
-        self.width = width
+        with open(r"interpolated_jaime_compaction_0cm_kpas.pickle", "rb") as input_file:
+            self.gaussian = np.array(pickle.load(input_file))
+
+        self.gaussian = np.swapaxes(self.gaussian, 0, 1)
+        self.width = self.gaussian.shape[0]
+        self.height = self.gaussian.shape[1]
+
         self.num_robots = num_robots
         self.robots = []
         self.RMSE = 999
@@ -461,13 +470,13 @@ class SpatialSamplingModel(Model):
         # Agents are instantiated simultaneously
         self.schedule = SimultaneousActivation(self)
         # The grid is multi-layered, and does not loop at the edges
-        self.grid = MultiGrid(width, height, torus=False)
+        self.grid = MultiGrid(self.width, self.height, torus=False)
 
         # An underlying 2D Gaussian distribution is created for the robots to sample values from
         # At present this can only be a square matrix, hence only using the height
-        self.gaussian = makeGaussian(height)
-        self.sampled = np.ones((width, height)) * -1
-        self.visited = np.zeros((width, height))
+        # self.gaussian = makeGaussian(height)
+        self.sampled = np.ones((self.width, self.height)) * -1
+        self.visited = np.zeros((self.width, self.height))
         self.step_num = 0
         self.num_goals = 0
         self.candidate_goals = []
@@ -482,11 +491,11 @@ class SpatialSamplingModel(Model):
         # another robot
         starting_positions = []
         for rob_id in range(self.num_robots):
-            x = self.random.randrange(1, width)
-            y = self.random.randrange(1, height)
+            x = self.random.randrange(1, self.width)
+            y = self.random.randrange(1, self.height)
             while [x, y] in starting_positions:
-                x = self.random.randrange(1, width)
-                y = self.random.randrange(1, height)
+                x = self.random.randrange(1, self.width)
+                y = self.random.randrange(1, self.height)
             starting_positions.append([x, y])
             agent = Robot((x, y), self)
             self.robots.append(agent)
@@ -516,7 +525,7 @@ class SpatialSamplingModel(Model):
                         if other_agent.unique_id != current_agent_id:
                             for cell in self.grid.iter_neighborhood((current_agent_pos[0], current_agent_pos[1]), False,
                                                                     True, radius=2):
-                                other_agent.movement_matrix[cell[1], cell[0]] = 10
+                                other_agent.movement_matrix[cell[0], cell[1]] = 10
 
                 if self.step_num == 1:
                     agent.queue_sampling(agent.pos)
