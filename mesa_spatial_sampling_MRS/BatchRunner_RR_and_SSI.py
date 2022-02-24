@@ -11,7 +11,7 @@ def main():
                                     "sampling_strategy": "random",
                                     "results_dir": results_dir},
                                 variable_parameters={
-                                    "trial_num": range(1, 11, 1)},
+                                    "trial_num": range(4, 5, 1)},
                                 # Define number of iterations for output in correct dirs
                                 iterations=1,
                                 max_steps=99999,
@@ -26,7 +26,7 @@ def main():
                                                  "Average time to complete a task":
                                                      SpatialSamplingModel.getAvgTaskCompletionTime
                                                  },
-                                nr_processes=3
+                                nr_processes=2
                                 )
 
     BatchRunner.run_all()

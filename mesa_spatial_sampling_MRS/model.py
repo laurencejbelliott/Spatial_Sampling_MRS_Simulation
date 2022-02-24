@@ -444,6 +444,11 @@ class SpatialSamplingModel(Model):
         self.robot_travel_distances = {}
         self.robot_idle_times = {}
         self.robot_waiting_times = {}
+        self.avg_task_completion_times = []
+        self.max_visits = []
+        self.total_dists_travelled = []
+        self.total_idle_times = []
+        self.total_waiting_times = []
         self.task_allocation = task_allocation  # "RR" or "SSI"
         self.sampling_strategy = sampling_strategy  # "dynamic" or "random"
         self.allocated_tasks = []
@@ -548,6 +553,14 @@ class SpatialSamplingModel(Model):
                 self.robot_idle_times[str(agent.unique_id)].append(agent.idle_time)
                 self.robot_waiting_times[str(agent.unique_id)].append(agent.waiting_time)
 
+        self.avg_task_completion_times.append(self.getAvgTaskCompletionTime())
+
+        self.max_visits.append(self.getMaxVisits())
+
+        self.total_dists_travelled.append(self.getTotalDistance())
+        self.total_idle_times.append(self.getTotalIdleTime())
+        self.total_waiting_times.append(self.getTotalWaitingTime())
+
         self.data_collector.collect(self)
 
         # Stop the simulation when all cells have been sampled by the robots
@@ -557,7 +570,12 @@ class SpatialSamplingModel(Model):
                 "Time step": range(1, len(self.RMSEs) + 1),
                 "RMSE": self.RMSEs,
                 "Average variance": self.variance_avgs,
-                "Number of cells sampled": self.num_samples_col
+                "Number of cells sampled": self.num_samples_col,
+                "Average time to complete a task": self.avg_task_completion_times,
+                "Maximum visits to a cell": self.max_visits,
+                "Total distance travelled": self.total_dists_travelled,
+                "Total idle time": self.total_idle_times,
+                "Total waiting times": self.total_waiting_times
             })
             metrics.set_index("Time step")
 
@@ -692,6 +710,10 @@ class SpatialSamplingModel(Model):
         return np.sum(current_robot_waiting_times)
 
     def getMaxVisits(self):
+        self.combined_cells_visited = np.zeros((self.width, self.height))
+        for agent in self.schedule.agents:
+            if agent.type == 0:  # True if the agent is a robot
+                self.combined_cells_visited += agent.visited
         return np.max(self.combined_cells_visited)
 
     def getTotalTaskCompletionTime(self):
