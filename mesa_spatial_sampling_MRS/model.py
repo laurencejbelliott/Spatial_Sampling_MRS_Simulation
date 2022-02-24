@@ -1,5 +1,9 @@
 __author__ = "Laurence Roberts-Elliott"
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
 import os
 import glob
 import random
@@ -12,7 +16,6 @@ from mesa.time import SimultaneousActivation
 from mesa.space import MultiGrid
 from mesa.datacollection import DataCollector
 import numpy as np
-import matplotlib.pyplot as plt
 from astar_python import Astar
 from gaussian import makeGaussian
 from kriging_utils.kriging import predict_by_kriging
