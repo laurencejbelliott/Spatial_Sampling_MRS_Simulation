@@ -11,7 +11,7 @@ def main():
                                     "sampling_strategy": "random",
                                     "results_dir": results_dir},
                                 variable_parameters={
-                                    "trial_num": range(5, 6, 1)},
+                                    "trial_num": range(7, 11, 1)},
                                 # Define number of iterations for output in correct dirs
                                 iterations=1,
                                 max_steps=99999,
