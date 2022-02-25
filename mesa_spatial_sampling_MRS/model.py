@@ -107,8 +107,8 @@ class Robot(Agent):
 
                 # Check goal cell for SampledCell agent (i.e. already sampled)
                 sampled_cells_to_del = []
-                for a in self.model.grid.get_cell_list_contents((self.path[self.path_step][0],
-                                                                 self.path[self.path_step][1])):
+                for a in self.model.grid.get_cell_list_contents((int(self.path[self.path_step][0]),
+                                                                 int(self.path[self.path_step][1]))):
                     if a.type == 2:
                         sampled_cells_to_del.append(a)
                 for a in sampled_cells_to_del:
@@ -197,6 +197,7 @@ class Robot(Agent):
                         # print(unsampled_clusters)
                         plt.scatter(unsampled_cells[:, 0], unsampled_cells[:, 1], c=unsampled_clusters)
                         plt.savefig(self.model.visualisation_dir+"unsampled_cell_clusters.png")
+                        plt.close()
 
                         # Split variance cells array into sub-arrays based on cluster
                         v_clustered = [{} for cluster in range(1, len(set(unsampled_clusters)) + 1)]
