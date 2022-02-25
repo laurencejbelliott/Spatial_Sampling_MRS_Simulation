@@ -1,2 +1,2 @@
 ,trial_num,Run,Average Variance,Average time to complete a task,Maximum visits to a cell,RMSE,Step number,Total cells sampled,Total distance travelled,Total idle time,Total waiting time,width,height,task_allocation,num_robots,sampling_strategy,results_dir
-0,4,20,0.005650662375773182,2.9228405234502794,8.0,0.005304354507553155,300,175,665,232,0,20,20,SSI,3,random,./results/SSI_RS_3robs_20x20/
+0,5,20,0.003050140423337333,3.141735709151439,64.0,0.007527886603775695,300,193,684,213,0,20,20,SSI,3,random,./results/SSI_RS_3robs_20x20/

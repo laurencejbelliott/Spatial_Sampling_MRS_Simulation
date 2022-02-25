@@ -234,13 +234,14 @@ class Robot(Agent):
                         # where x is the number of robots
                         self.model.candidate_goals = []
                         for x in range(len(self.model.robots)):
-                            goal_pos = (random.randrange(0, self.model.width), random.randrange(0, self.model.height))
-                            while goal_pos in self.model.allocated_tasks:
-                                # goal_pos = (random.randrange(0, self.model.width), random.randrange(0, self.model.height))
+                            try:
                                 goal_pos = random.choice([[x, y] for x in range(self.model.width) for
                                                           y in range(self.model.height) if
-                                                         [x, y] not in self.model.allocated_tasks])
-                            self.model.candidate_goals.append(goal_pos)
+                                                          [x, y] not in self.model.allocated_tasks])
+
+                                self.model.candidate_goals.append(goal_pos)
+                            except IndexError:
+                                pass
 
                     if self.model.verbose:
                         print("Candidate goals:", self.model.candidate_goals)
