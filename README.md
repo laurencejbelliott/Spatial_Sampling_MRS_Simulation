@@ -5,7 +5,7 @@ This simulation is being developed as a platform for simulated experiments in mu
 
 ## Dependencies
 The simulation runs entirely in Python 3, requiring the following packages to be installed with:
-`pip install mesa numpy astar-python PyKrige matplotlib`
+`pip install mesa numpy astar-python PyKrige matplotlib pandas`
 
 ## Running the simulation
 To run the simulation, use the bash command `mesa runserver` with your working directory set to that of `mesa_spatial_sampling_MRS`.
