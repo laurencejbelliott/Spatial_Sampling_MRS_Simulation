@@ -30,7 +30,8 @@ class Robot(Agent):
         # MESA represents colours in Hex, so we convert to this from RGB
         self.color = ("#%02X%02X%02X" % (r(), r(), r()))
         # Each robot has its own cost map for cost based avoidance of collision with other robots
-        self.movement_matrix = np.ones((self.model.width, self.model.height))
+        # self.movement_matrix = np.ones((self.model.width, self.model.height))
+        self.movement_matrix = np.ones((self.model.height, self.model.width))
         # The Astar class from `astar-python` provides the A* implementation
         self.astar = Astar(self.movement_matrix)
         self.goal = []
@@ -103,7 +104,7 @@ class Robot(Agent):
                 if len(self.path) == 1:
                     self.path_step = 0
                 self.model.sampled[self.path[self.path_step][0], self.path[self.path_step][1]] = \
-                    self.model.gaussian[self.path[self.path_step][0], self.path[self.path_step][1]]
+                    self.model.gaussian[self.path[self.path_step][1], self.path[self.path_step][0]]
 
                 # Check goal cell for SampledCell agent (i.e. already sampled)
                 sampled_cells_to_del = []
@@ -116,8 +117,8 @@ class Robot(Agent):
 
                 # For the purpose of visualisation in MESA, the sampled cell is instantiated as an agent and placed on
                 # the grid to shade the cell according to the sampled value
-                agent = SampledCell(self.goal, self.model, self.model.gaussian[self.path[self.path_step][0],
-                                                                               self.path[self.path_step][1]])
+                agent = SampledCell(self.goal, self.model, self.model.gaussian[self.path[self.path_step][1],
+                                                                               self.path[self.path_step][0]])
                 self.model.grid.place_agent(agent, tuple(self.goal))
                 if self.model.verbose:
                     print("Robot", self.unique_id, "sampled value", agent.value, "at", self.goal)
@@ -160,7 +161,7 @@ class Robot(Agent):
                     # Run prediction
                     m, v = predict_by_kriging(xgrid, ygrid, x_arr, y_arr, o_arr, variogram=variogram)
 
-                    self.model.RMSE = np.mean(np.power(np.array(self.model.gaussian).swapaxes(0, 1) - m, 2))
+                    self.model.RMSE = np.mean(np.power(np.array(self.model.gaussian) - m, 2))
                     self.model.avg_variance = np.mean(v)
                     # print("RMSE:", self.model.RMSE)
 
@@ -220,6 +221,8 @@ class Robot(Agent):
                                 if not word.isdigit():
                                     cluster_max_v_cell_str.remove(word)
                             cluster_max_v_cell = [int(word) for word in cluster_max_v_cell_str]
+                            cluster_max_v_cell = [int(word) for word in cluster_max_v_cell_str]
+                            cluster_max_v_cell = [cluster_max_v_cell[1], cluster_max_v_cell[0]]
                             if self.model.verbose:
                                 print(cluster_max_v_cell)
                             self.model.candidate_goals.append(cluster_max_v_cell)
@@ -305,7 +308,7 @@ class Robot(Agent):
                                     self.model.grid.move_agent(self, neighbour_cell)
                                     self.path_step = 1
                                     self.distance_travelled += 1
-                                    self.visited[neighbour_cell[1], neighbour_cell[0]] += 1
+                                    self.visited[neighbour_cell[0], neighbour_cell[1]] += 1
                                     self.trajectory.append(neighbour_cell)
 
                                 # If the next cell is not deadlocked, simply move the robot there
@@ -313,7 +316,7 @@ class Robot(Agent):
                                     self.model.grid.move_agent(self, tuple(self.path[self.path_step]))
                                     self.path_step = 1
                                     self.distance_travelled += 1
-                                    self.visited[self.path[self.path_step][1], self.path[self.path_step][0]] += 1
+                                    self.visited[self.path[self.path_step][0], self.path[self.path_step][1]] += 1
                                     self.trajectory.append(self.path[self.path_step])
                             else:
                                 if self.model.verbose:
@@ -341,10 +344,11 @@ class Robot(Agent):
                                     self.model.grid.move_agent(self, free_cell)
                                     self.path_step = 1
                                     self.distance_travelled += 1
-                                    self.visited[free_cell[1], free_cell[0]] += 1
+                                    self.visited[free_cell[0], free_cell[1]] += 1
                                     self.trajectory.append(free_cell)
 
         elif len(self.goals) > 0:
+            self.path = self.astar.run(self.pos, self.goal)
             print(self.goals)
 
         # print("Robot", str(self.unique_id), "current cell:", str(self.pos))
@@ -362,7 +366,9 @@ class Robot(Agent):
         self.goal = goal_pos
         if self.model.verbose:
             print("Robot", self.unique_id, "assigned task at", self.goal, "at step", self.model.step_num)
-        self.path = self.astar.run(np.array(self.pos) - [1, 1], np.array(self.goal) - [1, 1])
+        # self.path = self.astar.run(np.array(self.pos) - [1, 1], np.array(self.goal) - [1, 1])
+        self.path = self.astar.run(np.array(self.pos), np.array(self.goal))
+
         self.path_step = 1
         self.current_task_completion_time = 0
 
@@ -388,10 +394,14 @@ class Robot(Agent):
                         for j in range(len(candidate_goal_queue)):
                             if j > 0:
                                 prev_goal = candidate_goal_queue[j-1]
-                                queue_cost += np.sum([self.movement_matrix[step[0], step[1]] for
+                                # queue_cost += np.sum([self.movement_matrix[step[0], step[1]] for
+                                #                       step in self.astar.run(prev_goal, candidate_goal_queue[j])])
+                                queue_cost += np.sum([self.movement_matrix[step[1], step[0]] for
                                                       step in self.astar.run(prev_goal, candidate_goal_queue[j])])
                             else:
-                                queue_cost += np.sum([self.movement_matrix[step[0], step[1]] for step in self.astar.run(
+                                # queue_cost += np.sum([self.movement_matrix[step[0], step[1]] for step in self.astar.run(
+                                #     self.pos, goal_pos)])
+                                queue_cost += np.sum([self.movement_matrix[step[1], step[0]] for step in self.astar.run(
                                     self.pos, goal_pos)])
                         # print(queue_cost)
                         if best_queue_cost == -1 or best_queue_cost > queue_cost:
@@ -413,7 +423,12 @@ class SampledCell(Agent):
         super().__init__(pos, model)
         self.pos = pos
         self.value = value
+        # Normalise value to 0-1 range for grayscale representation of value
+        print(type(self.model))
         self.color = "#%02x%02x%02x" % (int(value * 255), int(value * 255), int(value * 255))
+        if isinstance(self.model, SpatialSamplingModel):
+            val_normalised = self.value / self.model.max_sample_value
+            self.color = "#%02x%02x%02x" % (int(val_normalised * 255), int(val_normalised * 255), int(val_normalised * 255))
         self.type = 1  # Agent type 1 is a sampled cell
 
 
@@ -426,7 +441,7 @@ class UnsampledCell(SampledCell):
 
 
 class SpatialSamplingModel(Model):
-    def __init__(self, height=20, width=20, num_robots=2, task_allocation="RR", trial_num=1,
+    def __init__(self, height=20, width=20, num_robots=2, task_allocation="SSI", trial_num=1,
                  sampling_strategy="dynamic",
                  results_dir="./results/3robs_20x20_grid_sampling_all_cells/",
                  verbose=True):
@@ -436,9 +451,19 @@ class SpatialSamplingModel(Model):
         with open(r"interpolated_jaime_compaction_0cm_kpas.pickle", "rb") as input_file:
             self.gaussian = np.array(pickle.load(input_file))
 
-        self.gaussian = np.swapaxes(self.gaussian, 0, 1)
-        self.width = self.gaussian.shape[0]
-        self.height = self.gaussian.shape[1]
+        plt.imshow(self.gaussian,
+                   cmap="gray", origin="lower")
+        plt.title("Underlying soil compaction data")
+        plt.colorbar()
+        plt.savefig("ground_truth_distribution.png")
+        plt.close()
+        # self.gaussian = np.swapaxes(self.gaussian, 0, 1)
+        # self.gaussian = self.gaussian.swapaxes(0, 1)
+        self.max_sample_value = np.max(self.gaussian)
+        # self.gaussian = self.gaussian / self.max_sample_value
+
+        self.width = width
+        self.height = height
 
         self.num_robots = num_robots
         self.robots = []
@@ -526,7 +551,7 @@ class SpatialSamplingModel(Model):
                         if other_agent.unique_id != current_agent_id:
                             for cell in self.grid.iter_neighborhood((current_agent_pos[0], current_agent_pos[1]), False,
                                                                     True, radius=2):
-                                other_agent.movement_matrix[cell[0], cell[1]] = 10
+                                other_agent.movement_matrix[cell[1], cell[0]] = 2  # 10
 
                 if self.step_num == 1:
                     agent.queue_sampling(agent.pos)
@@ -637,7 +662,7 @@ class SpatialSamplingModel(Model):
                 for agent in self.schedule.agents:
                     if agent.type == 0:  # True if the agent is a robot
                         try:
-                            agent.bid = np.sum([agent.movement_matrix[step[0], step[1]] for step in agent.astar.run(
+                            agent.bid = np.sum([agent.movement_matrix[step[1], step[0]] for step in agent.astar.run(
                                 agent.pos, tuple(task))])
                             if self.verbose:
                                 print("Robot", str(agent.unique_id), "bid:", str(agent.bid))
