@@ -57,7 +57,7 @@ def main():
                                                  "Average time to complete a task":
                                                      SpatialSamplingModel.getAvgTaskCompletionTime
                                                  },
-                                nr_processes=10
+                                nr_processes=2
                                 )
 
     BatchRunner.run_all()
