@@ -6,6 +6,7 @@ import random
 import re
 import copy
 import pickle
+import math
 
 import pandas as pd
 from mesa import Model, Agent
@@ -15,7 +16,7 @@ from mesa.datacollection import DataCollector
 import numpy as np
 import matplotlib.pyplot as plt
 from astar_python import Astar
-from gaussian import makeGaussian
+# from gaussian import makeGaussian
 from kriging_utils.kriging import predict_by_kriging
 from scipy.cluster.hierarchy import fclusterdata
 
@@ -161,7 +162,12 @@ class Robot(Agent):
                     # Run prediction
                     m, v = predict_by_kriging(xgrid, ygrid, x_arr, y_arr, o_arr, variogram=variogram)
 
-                    self.model.RMSE = np.mean(np.power(np.array(self.model.gaussian) - m, 2))
+                    m = np.flipud(m)
+                    m = np.fliplr(m)
+                    #
+                    # v = np.flipud(v)
+                    # v = np.fliplr(v)
+                    self.model.RMSE = np.sqrt(np.mean(np.power(np.array(self.model.gaussian) - m, 2)))
                     self.model.avg_variance = np.mean(v)
                     # print("RMSE:", self.model.RMSE)
 
@@ -189,12 +195,20 @@ class Robot(Agent):
                         unsampled_cells = np.where(np.array(self.model.sampled) == -1)
                         unsampled_cells = np.array(list(zip(unsampled_cells[1], unsampled_cells[0])))
 
+                        # unsampled_clusters = fclusterdata(unsampled_cells,
+                        #                                   t=self.model.width / (len(self.model.robots) / 3),
+                        #                                   criterion='distance',
+                        #                                   metric='euclidean',
+                        #                                   depth=1,
+                        #                                   method='complete')
+
                         unsampled_clusters = fclusterdata(unsampled_cells,
-                                                          t=self.model.width / (len(self.model.robots) / 3),
+                                                          t=math.sqrt(self.model.width*self.model.height),
                                                           criterion='distance',
                                                           metric='euclidean',
                                                           depth=1,
                                                           method='complete')
+
                         # print(unsampled_clusters)
                         plt.scatter(unsampled_cells[:, 0], unsampled_cells[:, 1], c=unsampled_clusters)
                         plt.savefig(self.model.visualisation_dir+"unsampled_cell_clusters.png")
@@ -213,6 +227,8 @@ class Robot(Agent):
                         # where x is the number of robots
                         self.model.candidate_goals = []
                         # cluster_max_vs = []
+                        print("Number of clusters:", len(v_clustered))
+
                         for cluster in v_clustered:
                             cluster_max_v_cell_str = max(cluster, key=cluster.get)
                             cluster_max_v_cell_str = [re.sub("[^0-9]", "", word) for
@@ -220,7 +236,7 @@ class Robot(Agent):
                             for word in cluster_max_v_cell_str:
                                 if not word.isdigit():
                                     cluster_max_v_cell_str.remove(word)
-                            cluster_max_v_cell = [int(word) for word in cluster_max_v_cell_str]
+
                             cluster_max_v_cell = [int(word) for word in cluster_max_v_cell_str]
                             cluster_max_v_cell = [cluster_max_v_cell[1], cluster_max_v_cell[0]]
                             if self.model.verbose:
@@ -424,7 +440,7 @@ class SampledCell(Agent):
         self.pos = pos
         self.value = value
         # Normalise value to 0-1 range for grayscale representation of value
-        print(type(self.model))
+        # print(type(self.model))
         self.color = "#%02x%02x%02x" % (int(value * 255), int(value * 255), int(value * 255))
         if isinstance(self.model, SpatialSamplingModel):
             val_normalised = self.value / self.model.max_sample_value
@@ -441,7 +457,7 @@ class UnsampledCell(SampledCell):
 
 
 class SpatialSamplingModel(Model):
-    def __init__(self, height=20, width=20, num_robots=2, task_allocation="SSI", trial_num=1,
+    def __init__(self, height=20, width=20, num_robots=2, task_allocation="SSI", trial_num=2,
                  sampling_strategy="dynamic",
                  results_dir="./results/3robs_20x20_grid_sampling_all_cells/",
                  verbose=True):
