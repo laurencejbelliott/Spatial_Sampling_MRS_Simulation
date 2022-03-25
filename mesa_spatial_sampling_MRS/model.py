@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 from astar_python import Astar
 # from gaussian import makeGaussian
 from kriging_utils.kriging import predict_by_kriging
+from kriging_utils.kriging_cv import kriging_param_cv
 from scipy.cluster.hierarchy import fclusterdata
 
 
@@ -157,6 +158,9 @@ class Robot(Agent):
                     # print(y_arr)
                     # print(o_arr)
 
+                    if self.model.num_samples == 10:
+                        print(kriging_param_cv(sampled_cells, o_arr))
+
                     variogram = 'gaussian'
 
                     # Run prediction
@@ -185,8 +189,8 @@ class Robot(Agent):
                     plt.savefig(self.model.visualisation_dir + 'Variance.png')
                     plt.close()
 
-                    # Sort indices of variance into ascending order
-                    v_ind_sorted = np.unravel_index(np.argsort(v, axis=None), v.shape)
+                    # # Sort indices of variance into ascending order
+                    # v_ind_sorted = np.unravel_index(np.argsort(v, axis=None), v.shape)
 
                     if self.model.sampling_strategy == "dynamic":
 
@@ -210,7 +214,7 @@ class Robot(Agent):
                                                           method='complete')
 
                         # print(unsampled_clusters)
-                        plt.scatter(unsampled_cells[:, 0], unsampled_cells[:, 1], c=unsampled_clusters)
+                        plt.scatter(unsampled_cells[:, 1], unsampled_cells[:, 0], c=unsampled_clusters)
                         plt.savefig(self.model.visualisation_dir+"unsampled_cell_clusters.png")
                         plt.close()
 
@@ -443,7 +447,8 @@ class SampledCell(Agent):
         # print(type(self.model))
         self.color = "#%02x%02x%02x" % (int(value * 255), int(value * 255), int(value * 255))
         if isinstance(self.model, SpatialSamplingModel):
-            val_normalised = self.value / self.model.max_sample_value
+            val_normalised = (self.value - self.model.min_sample_value) /\
+                             (self.model.max_sample_value - self.model.min_sample_value)
             self.color = "#%02x%02x%02x" % (int(val_normalised * 255), int(val_normalised * 255), int(val_normalised * 255))
         self.type = 1  # Agent type 1 is a sampled cell
 
@@ -475,12 +480,14 @@ class SpatialSamplingModel(Model):
         plt.close()
         # self.gaussian = np.swapaxes(self.gaussian, 0, 1)
         # self.gaussian = self.gaussian.swapaxes(0, 1)
+        self.min_sample_value = np.min(self.gaussian)
         self.max_sample_value = np.max(self.gaussian)
         # self.gaussian = self.gaussian / self.max_sample_value
 
         self.width = width
         self.height = height
 
+        self.variogram = "gaussian"
         self.num_robots = num_robots
         self.robots = []
         self.RMSE = 999
@@ -625,7 +632,7 @@ class SpatialSamplingModel(Model):
                     ax = plt.figure("Robot " + str(agent.unique_id) + " visited cells").gca()
                     ax.yaxis.get_major_locator().set_params(integer=True)
                     ax.xaxis.get_major_locator().set_params(integer=True)
-                    plt.imshow(agent.visited, origin="lower", cmap="gray")
+                    plt.imshow(np.swapaxes(agent.visited, 0, 1), origin="lower", cmap="gray")
 
                     trajectory_plot_info[agent.unique_id] = {
                         "x": [agent.trajectory[t][0] for t in range(len(agent.trajectory))],
@@ -648,7 +655,8 @@ class SpatialSamplingModel(Model):
             ax = plt.figure("Combined visited cells").gca()
             ax.yaxis.get_major_locator().set_params(integer=True)
             ax.xaxis.get_major_locator().set_params(integer=True)
-            plt.imshow(self.combined_cells_visited, origin="lower", cmap="gray")
+
+            plt.imshow(np.swapaxes(self.combined_cells_visited, 0, 1), origin="lower", cmap="gray")
             plt.colorbar()
             for robot_id in trajectory_plot_info.keys():
                 plt.plot(trajectory_plot_info[robot_id]["x"],
