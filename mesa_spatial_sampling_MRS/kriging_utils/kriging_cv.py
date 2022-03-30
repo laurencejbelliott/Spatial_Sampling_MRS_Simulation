@@ -27,12 +27,16 @@ estimator = GridSearchCV(Krige(), param_dict, verbose=True, return_train_score=T
 
 
 def kriging_param_cv(x, y):
-    # dummy data
+    # # dummy data
     X = np.array(x, dtype=np.float64)
-    Y = np.array(y, dtype=np.float64)
+    Y = np.array(y)
 
     print(X.shape)
-    print(Y.shape)
+    print(X.dtype)
+    print("X is finite:", np.isfinite(X))
+    # print(y.shape)
+    print(Y.dtype)
+    print("Y is finite:", np.isfinite(Y))
     # run the gridsearch
     estimator.fit(X=X, y=Y)
 

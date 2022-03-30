@@ -158,13 +158,27 @@ class Robot(Agent):
                     # print(y_arr)
                     # print(o_arr)
 
-                    if self.model.num_samples == 10:
-                        print(kriging_param_cv(sampled_cells, o_arr))
+                    # if self.model.num_samples == 10:
+                    if self.model.num_samples == 20:
+                        # print(kriging_param_cv(sampled_cells, o_arr))
+                        variogram_models = ["linear", "power", "gaussian", "spherical"]
+                        model_scores = []
 
-                    variogram = 'gaussian'
+                        for variogram_model in variogram_models:
+                            m, v = predict_by_kriging(xgrid, ygrid, x_arr, y_arr, o_arr, variogram=variogram_model)
+
+                            m = np.flipud(m)
+                            m = np.fliplr(m)
+                            model_score = np.sqrt(np.mean(np.power(np.array(self.model.gaussian) - m, 2)))
+                            model_scores.append(model_score)
+                            print(variogram_model, model_score)
+
+                        best_model = variogram_models[np.argmin(model_scores)]
+                        self.model.variogram = best_model
+                        print("Best variogram model:", best_model)
 
                     # Run prediction
-                    m, v = predict_by_kriging(xgrid, ygrid, x_arr, y_arr, o_arr, variogram=variogram)
+                    m, v = predict_by_kriging(xgrid, ygrid, x_arr, y_arr, o_arr, variogram=self.model.variogram)
 
                     m = np.flipud(m)
                     m = np.fliplr(m)
@@ -462,7 +476,7 @@ class UnsampledCell(SampledCell):
 
 
 class SpatialSamplingModel(Model):
-    def __init__(self, height=20, width=20, num_robots=2, task_allocation="SSI", trial_num=2,
+    def __init__(self, height=20, width=20, num_robots=2, task_allocation="SSI", trial_num=1,
                  sampling_strategy="dynamic",
                  results_dir="./results/3robs_20x20_grid_sampling_all_cells/",
                  verbose=True):
@@ -490,8 +504,8 @@ class SpatialSamplingModel(Model):
         self.variogram = "gaussian"
         self.num_robots = num_robots
         self.robots = []
-        self.RMSE = 999
-        self.avg_variance = 999
+        self.RMSE = -1
+        self.avg_variance = -1
         self.RMSEs = []
         self.variance_avgs = []
         self.num_samples = 0
