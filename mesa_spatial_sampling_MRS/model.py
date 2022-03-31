@@ -272,14 +272,24 @@ class Robot(Agent):
                         # Set goals as x random unsampled cells (candidate goals)
                         # where x is the number of robots
                         self.model.candidate_goals = []
-                        for x in range(len(self.model.robots)):
-                            goal_pos = (random.randrange(0, self.model.width), random.randrange(0, self.model.height))
-                            while goal_pos in self.model.allocated_tasks:
-                                # goal_pos = (random.randrange(0, self.model.width), random.randrange(0, self.model.height))
-                                goal_pos = random.choice([[x, y] for x in range(self.model.width) for
-                                                          y in range(self.model.height) if
-                                                         [x, y] not in self.model.allocated_tasks])
-                            self.model.candidate_goals.append(goal_pos)
+                        if self.model.all_cells_assigned:
+                            pass
+                        else:
+                            for x in range(len(self.model.robots)):
+                                goal_pos = (random.randrange(0, self.model.width), random.randrange(0, self.model.height))
+                                while goal_pos in self.model.allocated_tasks:
+                                    # goal_pos = (random.randrange(0, self.model.width), random.randrange(0, self.model.height))
+                                    unallocated_cells = [[x, y] for x in range(self.model.width) for
+                                                              y in range(self.model.height) if
+                                                             [x, y] not in self.model.allocated_tasks]
+                                    # print("Unallocated cells:", unallocated_cells)
+                                    if unallocated_cells:
+                                        goal_pos = random.choice(unallocated_cells)
+                                    else:
+                                        self.model.all_cells_assigned = True
+                                        break
+                                if not self.model.all_cells_assigned:
+                                    self.model.candidate_goals.append(goal_pos)
 
                     if self.model.verbose:
                         print("Candidate goals:", self.model.candidate_goals)
@@ -477,7 +487,7 @@ class UnsampledCell(SampledCell):
 
 class SpatialSamplingModel(Model):
     def __init__(self, height=20, width=20, num_robots=2, task_allocation="SSI", trial_num=1,
-                 sampling_strategy="dynamic",
+                 sampling_strategy="random",
                  results_dir="./results/3robs_20x20_grid_sampling_all_cells/",
                  verbose=True):
         super(SpatialSamplingModel, self).__init__(seed=trial_num)
