@@ -191,16 +191,16 @@ class Robot(Agent):
 
                     # Export as images
                     plt.figure('Mean')
-                    plt.title("Values Predicted by Kriging Interpolation")
+                    plt.title("Values Predicted by Kriging Interpolation at Step " + str(self.model.step_num))
                     plt.imshow(m, origin="lower")
                     plt.colorbar()
-                    plt.savefig(self.model.visualisation_dir + 'Mean.png')
+                    plt.savefig(self.model.visualisation_dir + str(self.model.step_num)+"_" + 'Mean.png')
                     plt.close()
                     plt.figure('Variance')
-                    plt.title("Kriging Variance")
+                    plt.title("Kriging Variance at Step " + str(self.model.step_num))
                     plt.imshow(v, origin="lower")
                     plt.colorbar()
-                    plt.savefig(self.model.visualisation_dir + 'Variance.png')
+                    plt.savefig(self.model.visualisation_dir + str(self.model.step_num)+"_" + 'Variance.png')
                     plt.close()
 
                     # # Sort indices of variance into ascending order
@@ -229,7 +229,8 @@ class Robot(Agent):
 
                         # print(unsampled_clusters)
                         plt.scatter(unsampled_cells[:, 1], unsampled_cells[:, 0], c=unsampled_clusters)
-                        plt.savefig(self.model.visualisation_dir+"unsampled_cell_clusters.png")
+                        plt.title("Unsampled Cells Clustered by Distance  at Step " + str(self.model.step_num))
+                        plt.savefig(self.model.visualisation_dir + str(self.model.step_num)+"_" + "unsampled_cell_clusters.png")
                         plt.close()
 
                         # Split variance cells array into sub-arrays based on cluster
@@ -487,12 +488,13 @@ class UnsampledCell(SampledCell):
 
 class SpatialSamplingModel(Model):
     def __init__(self, height=20, width=20, num_robots=2, task_allocation="SSI", trial_num=1,
-                 sampling_strategy="random",
+                 sampling_strategy="dynamic",
                  results_dir="./results/3robs_20x20_grid_sampling_all_cells/",
                  verbose=True):
         super(SpatialSamplingModel, self).__init__(seed=trial_num)
         self.random.seed(trial_num)
         random.seed(trial_num)
+        self.step_num = 0
         with open(r"interpolated_jaime_compaction_0cm_kpas.pickle", "rb") as input_file:
             self.gaussian = np.array(pickle.load(input_file))
 
@@ -550,7 +552,6 @@ class SpatialSamplingModel(Model):
         # self.gaussian = makeGaussian(height)
         self.sampled = np.ones((self.width, self.height)) * -1
         self.visited = np.zeros((self.width, self.height))
-        self.step_num = 0
         self.num_goals = 0
         self.candidate_goals = []
         self.all_cells_assigned = False
@@ -629,6 +630,56 @@ class SpatialSamplingModel(Model):
 
         self.data_collector.collect(self)
 
+        # Export visited cells as images
+        self.combined_cells_visited = np.zeros((self.width, self.height))
+        trajectory_plot_info = {}
+        for agent in self.schedule.agents:
+            if agent.type == 0:  # True if the agent is a robot
+                ax = plt.figure("Robot " + str(agent.unique_id) + " visited cells").gca()
+                ax.yaxis.get_major_locator().set_params(integer=True)
+                ax.xaxis.get_major_locator().set_params(integer=True)
+                plt.imshow(np.swapaxes(agent.visited, 0, 1), origin="lower", cmap="gray")
+
+                trajectory_plot_info[agent.unique_id] = {
+                    "x": [agent.trajectory[t][0] for t in range(len(agent.trajectory))],
+                    "y": [agent.trajectory[t][1] for t in range(len(agent.trajectory))],
+                    "c": agent.color
+                }
+
+                plt.plot(trajectory_plot_info[agent.unique_id]["x"],
+                         trajectory_plot_info[agent.unique_id]["y"],
+                         c=trajectory_plot_info[agent.unique_id]["c"])
+
+                plt.colorbar()
+                plt.scatter(x=agent.sampled_cells_x, y=agent.sampled_cells_y, marker="o",
+                            c=trajectory_plot_info[agent.unique_id]["c"])
+                plt.title(
+                    "Map of Cells Visited by Robot " + str(agent.unique_id) + " at Step " + str(self.step_num))
+                plt.savefig(
+                    self.visualisation_dir + str(self.step_num) + "_" + str(agent.unique_id) + "_visited_cells.png")
+                plt.close()
+                self.combined_cells_visited += agent.visited
+
+        ax = plt.figure("Combined visited cells").gca()
+        ax.yaxis.get_major_locator().set_params(integer=True)
+        ax.xaxis.get_major_locator().set_params(integer=True)
+
+        plt.imshow(np.swapaxes(self.combined_cells_visited, 0, 1), origin="lower", cmap="gray")
+        plt.colorbar()
+        for robot_id in trajectory_plot_info.keys():
+            plt.plot(trajectory_plot_info[robot_id]["x"],
+                     trajectory_plot_info[robot_id]["y"],
+                     c=trajectory_plot_info[robot_id]["c"])
+        for agent in self.schedule.agents:
+            if agent.type == 0:
+                plt.scatter(x=agent.sampled_cells_x, y=agent.sampled_cells_y, marker="o",
+                            c=trajectory_plot_info[agent.unique_id]["c"])
+
+            plt.title("Combined Map of Visited Cells  at Step " + str(self.step_num))
+        plt.legend(["Robot " + str(robot_id) for robot_id in trajectory_plot_info.keys()])
+        plt.savefig(self.visualisation_dir + str(self.step_num) + "_" + "combined_visited_cells.png")
+        plt.close()
+
         # Stop the simulation when all cells have been sampled by the robots
         # or Root Mean Square Error is below a given value
         if self.step_num >= 300:
@@ -648,53 +699,53 @@ class SpatialSamplingModel(Model):
             print(metrics)
             metrics.to_csv(self.visualisation_dir+str(self.trial_num)+".csv")
 
-            # Export visited cells as images
-            self.combined_cells_visited = np.zeros((self.width, self.height))
-            trajectory_plot_info = {}
-            for agent in self.schedule.agents:
-                if agent.type == 0:  # True if the agent is a robot
-                    ax = plt.figure("Robot " + str(agent.unique_id) + " visited cells").gca()
-                    ax.yaxis.get_major_locator().set_params(integer=True)
-                    ax.xaxis.get_major_locator().set_params(integer=True)
-                    plt.imshow(np.swapaxes(agent.visited, 0, 1), origin="lower", cmap="gray")
-
-                    trajectory_plot_info[agent.unique_id] = {
-                        "x": [agent.trajectory[t][0] for t in range(len(agent.trajectory))],
-                        "y": [agent.trajectory[t][1] for t in range(len(agent.trajectory))],
-                        "c": agent.color
-                    }
-
-                    plt.plot(trajectory_plot_info[agent.unique_id]["x"],
-                             trajectory_plot_info[agent.unique_id]["y"],
-                             c=trajectory_plot_info[agent.unique_id]["c"])
-
-                    plt.colorbar()
-                    plt.scatter(x=agent.sampled_cells_x, y=agent.sampled_cells_y, marker="o",
-                                c=trajectory_plot_info[agent.unique_id]["c"])
-                    plt.title("Map of Cells Visited by Robot " + str(agent.unique_id))
-                    plt.savefig(self.visualisation_dir + str(agent.unique_id) + "_visited_cells.png")
-                    plt.close()
-                    self.combined_cells_visited += agent.visited
-
-            ax = plt.figure("Combined visited cells").gca()
-            ax.yaxis.get_major_locator().set_params(integer=True)
-            ax.xaxis.get_major_locator().set_params(integer=True)
-
-            plt.imshow(np.swapaxes(self.combined_cells_visited, 0, 1), origin="lower", cmap="gray")
-            plt.colorbar()
-            for robot_id in trajectory_plot_info.keys():
-                plt.plot(trajectory_plot_info[robot_id]["x"],
-                         trajectory_plot_info[robot_id]["y"],
-                         c=trajectory_plot_info[robot_id]["c"])
-            for agent in self.schedule.agents:
-                if agent.type == 0:
-                    plt.scatter(x=agent.sampled_cells_x, y=agent.sampled_cells_y, marker="o",
-                                c=trajectory_plot_info[agent.unique_id]["c"])
-
-                plt.title("Combined Map of Visited Cells")
-            plt.legend(["Robot "+str(robot_id) for robot_id in trajectory_plot_info.keys()])
-            plt.savefig(self.visualisation_dir+"combined_visited_cells.png")
-            plt.close()
+            # # Export visited cells as images
+            # self.combined_cells_visited = np.zeros((self.width, self.height))
+            # trajectory_plot_info = {}
+            # for agent in self.schedule.agents:
+            #     if agent.type == 0:  # True if the agent is a robot
+            #         ax = plt.figure("Robot " + str(agent.unique_id) + " visited cells").gca()
+            #         ax.yaxis.get_major_locator().set_params(integer=True)
+            #         ax.xaxis.get_major_locator().set_params(integer=True)
+            #         plt.imshow(np.swapaxes(agent.visited, 0, 1), origin="lower", cmap="gray")
+            #
+            #         trajectory_plot_info[agent.unique_id] = {
+            #             "x": [agent.trajectory[t][0] for t in range(len(agent.trajectory))],
+            #             "y": [agent.trajectory[t][1] for t in range(len(agent.trajectory))],
+            #             "c": agent.color
+            #         }
+            #
+            #         plt.plot(trajectory_plot_info[agent.unique_id]["x"],
+            #                  trajectory_plot_info[agent.unique_id]["y"],
+            #                  c=trajectory_plot_info[agent.unique_id]["c"])
+            #
+            #         plt.colorbar()
+            #         plt.scatter(x=agent.sampled_cells_x, y=agent.sampled_cells_y, marker="o",
+            #                     c=trajectory_plot_info[agent.unique_id]["c"])
+            #         plt.title("Map of Cells Visited by Robot " + str(agent.unique_id)+ " at Step " + str(self.model.step_num))
+            #         plt.savefig(self.visualisation_dir + str(self.step_num)+"_" + str(agent.unique_id) + "_visited_cells.png")
+            #         plt.close()
+            #         self.combined_cells_visited += agent.visited
+            #
+            # ax = plt.figure("Combined visited cells").gca()
+            # ax.yaxis.get_major_locator().set_params(integer=True)
+            # ax.xaxis.get_major_locator().set_params(integer=True)
+            #
+            # plt.imshow(np.swapaxes(self.combined_cells_visited, 0, 1), origin="lower", cmap="gray")
+            # plt.colorbar()
+            # for robot_id in trajectory_plot_info.keys():
+            #     plt.plot(trajectory_plot_info[robot_id]["x"],
+            #              trajectory_plot_info[robot_id]["y"],
+            #              c=trajectory_plot_info[robot_id]["c"])
+            # for agent in self.schedule.agents:
+            #     if agent.type == 0:
+            #         plt.scatter(x=agent.sampled_cells_x, y=agent.sampled_cells_y, marker="o",
+            #                     c=trajectory_plot_info[agent.unique_id]["c"])
+            #
+            #     plt.title("Combined Map of Visited Cells  at Step " + str(self.model.step_num))
+            # plt.legend(["Robot "+str(robot_id) for robot_id in trajectory_plot_info.keys()])
+            # plt.savefig(self.visualisation_dir + str(self.step_num)+"_" + "combined_visited_cells.png")
+            # plt.close()
 
             self.running = False
 
