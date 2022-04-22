@@ -169,6 +169,9 @@ class Robot(Agent):
 
                             m = np.flipud(m)
                             m = np.fliplr(m)
+
+                            # v = np.swapaxes(v, 0, 1)
+
                             model_score = np.sqrt(np.mean(np.power(np.array(self.model.gaussian) - m, 2)))
                             model_scores.append(model_score)
                             print(variogram_model, model_score)
@@ -178,68 +181,48 @@ class Robot(Agent):
                         print("Best variogram model:", best_model)
 
                     # Run prediction
-                    m, v = predict_by_kriging(xgrid, ygrid, x_arr, y_arr, o_arr, variogram=self.model.variogram)
+                    self.model.m, self.model.v = predict_by_kriging(xgrid, ygrid, x_arr, y_arr, o_arr, variogram=self.model.variogram)
 
-                    m = np.flipud(m)
-                    m = np.fliplr(m)
-                    #
-                    # v = np.flipud(v)
-                    # v = np.fliplr(v)
-                    self.model.RMSE = np.sqrt(np.mean(np.power(np.array(self.model.gaussian) - m, 2)))
-                    self.model.avg_variance = np.mean(v)
+                    self.model.m = np.flipud(self.model.m)
+                    self.model.m = np.fliplr(self.model.m)
+
+                    # self.model.v = np.flipud(self.model.v)
+                    # self.model.v = np.fliplr(self.model.v)
+                    # self.model.v = np.swapaxes(self.model.v, 0, 1)
+
+                    self.model.RMSE = np.sqrt(np.mean(np.power(np.array(self.model.gaussian) - self.model.m, 2)))
+                    self.model.avg_variance = np.mean(self.model.v)
                     # print("RMSE:", self.model.RMSE)
-
-                    # Export as images
-                    plt.figure('Mean')
-                    plt.title("Values Predicted by Kriging Interpolation at Step " + str(self.model.step_num))
-                    plt.imshow(m, origin="lower")
-                    plt.colorbar()
-                    plt.savefig(self.model.visualisation_dir + str(self.model.step_num)+"_" + 'Mean.png')
-                    plt.close()
-                    plt.figure('Variance')
-                    plt.title("Kriging Variance at Step " + str(self.model.step_num))
-                    plt.imshow(v, origin="lower")
-                    plt.colorbar()
-                    plt.savefig(self.model.visualisation_dir + str(self.model.step_num)+"_" + 'Variance.png')
-                    plt.close()
-
-                    # # Sort indices of variance into ascending order
-                    # v_ind_sorted = np.unravel_index(np.argsort(v, axis=None), v.shape)
 
                     if self.model.sampling_strategy == "dynamic":
 
                         # Cluster unsampled cells
                         # Get unsampled cells and format as N by M matrix (N observations, M dimensions)
-                        unsampled_cells = np.where(np.array(self.model.sampled) == -1)
-                        unsampled_cells = np.array(list(zip(unsampled_cells[1], unsampled_cells[0])))
+                        self.model.unsampled_cells = np.where(np.array(self.model.sampled) == -1)
+                        self.model.unsampled_cells = np.array(list(zip(self.model.unsampled_cells[1],
+                                                                       self.model.unsampled_cells[0])))
 
-                        # unsampled_clusters = fclusterdata(unsampled_cells,
+                        # self.model.unsampled_clusters = fclusterdata(self.model.unsampled_cells,
                         #                                   t=self.model.width / (len(self.model.robots) / 3),
                         #                                   criterion='distance',
                         #                                   metric='euclidean',
                         #                                   depth=1,
                         #                                   method='complete')
 
-                        unsampled_clusters = fclusterdata(unsampled_cells,
-                                                          t=math.sqrt(self.model.width*self.model.height),
+                        self.model.unsampled_clusters = fclusterdata(self.model.unsampled_cells,
+                                                          t=math.sqrt(self.model.width*self.model.height)/3,
                                                           criterion='distance',
                                                           metric='euclidean',
                                                           depth=1,
                                                           method='complete')
 
-                        # print(unsampled_clusters)
-                        plt.scatter(unsampled_cells[:, 1], unsampled_cells[:, 0], c=unsampled_clusters)
-                        plt.title("Unsampled Cells Clustered by Distance  at Step " + str(self.model.step_num))
-                        plt.savefig(self.model.visualisation_dir + str(self.model.step_num)+"_" + "unsampled_cell_clusters.png")
-                        plt.close()
-
                         # Split variance cells array into sub-arrays based on cluster
-                        v_clustered = [{} for cluster in range(1, len(set(unsampled_clusters)) + 1)]
-                        for cell_ix in range(0, len(unsampled_cells)):
-                            cell = unsampled_cells[cell_ix]
-                            cell_cluster = unsampled_clusters[cell_ix]
+                        v_clustered = [{} for cluster in range(1, len(set(self.model.unsampled_clusters)) + 1)]
+                        for cell_ix in range(0, len(self.model.unsampled_cells)):
+                            cell = self.model.unsampled_cells[cell_ix]
+                            cell_cluster = self.model.unsampled_clusters[cell_ix]
                             # print(cell_cluster, "\n")
-                            cell_variance = v[cell[0], cell[1]]
+                            cell_variance = self.model.v[cell[0], cell[1]]
                             v_clustered[cell_cluster - 1][str(cell)] = cell_variance
 
                         # Set goals as x highest variance cells (candidate goals)
@@ -249,6 +232,7 @@ class Robot(Agent):
                         print("Number of clusters:", len(v_clustered))
 
                         for cluster in v_clustered:
+                            # cluster_max_v_cell_str = max(cluster, key=cluster.get)
                             cluster_max_v_cell_str = max(cluster, key=cluster.get)
                             cluster_max_v_cell_str = [re.sub("[^0-9]", "", word) for
                                                       word in cluster_max_v_cell_str.split()]
@@ -264,11 +248,7 @@ class Robot(Agent):
 
                         if self.model.verbose:
                             print("Num. clusters:", len(self.model.candidate_goals))
-                        # print(cluster_max_vs)
 
-                        # self.model.candidate_goals = [[v_ind_sorted[1][-r],
-                        #                               v_ind_sorted[0][-r]] for r in range(1,
-                        #                                                                   (len(self.model.robots) + 1))]
                     elif self.model.sampling_strategy == "random":
                         # Set goals as x random unsampled cells (candidate goals)
                         # where x is the number of robots
@@ -556,6 +536,14 @@ class SpatialSamplingModel(Model):
         self.candidate_goals = []
         self.all_cells_assigned = False
 
+        # Placeholders for kriging means and variance
+        self.m = np.zeros((self.height, self.width))
+        self.v = np.zeros((self.height, self.width))
+
+        # Placeholders for unsampled cells and clusters
+        self.unsampled_cells = []
+        self.unsampled_clusters = []
+
         # Place UnsampledCell agents for visualisation of unsampled cells
         for x in range(self.width):
             for y in range(self.height):
@@ -680,9 +668,41 @@ class SpatialSamplingModel(Model):
         plt.savefig(self.visualisation_dir + str(self.step_num) + "_" + "combined_visited_cells.png")
         plt.close()
 
+        # Export as images
+        plt.figure('Mean')
+        plt.title("Values Predicted by Kriging Interpolation at Step " + str(self.step_num))
+        plt.imshow(self.m, origin="lower")
+        plt.colorbar()
+        plt.savefig(self.visualisation_dir + str(self.step_num) + "_" + 'Mean.png')
+        plt.close()
+        plt.figure('Variance')
+        plt.title("Kriging Variance at Step " + str(self.step_num))
+        plt.imshow(self.v, origin="lower")
+        plt.colorbar()
+        plt.savefig(self.visualisation_dir + str(self.step_num) + "_" + 'Variance.png')
+        plt.close()
+
+        if self.sampling_strategy == "dynamic":
+            if len(self.unsampled_cells) > 0 and len(self.unsampled_clusters) > 0:
+                # print("Unsampled cells:", self.unsampled_cells)
+                # print("Unsampled cell clusters:", self.unsampled_clusters)
+                # Plot clusters of unsampled cells
+                plt.scatter(self.unsampled_cells[:, 1], self.unsampled_cells[:, 0],
+                            c=self.unsampled_clusters)
+                plt.title("Unsampled Cells Clustered by Distance  at Step " + str(self.step_num))
+                plt.savefig(self.visualisation_dir + str(self.step_num) + "_" +
+                            "unsampled_cell_clusters.png")
+                plt.close()
+            else:
+                plt.figure()
+                plt.title("Unsampled Cells Clustered by Distance  at Step " + str(self.step_num))
+                plt.savefig(self.visualisation_dir + str(self.step_num) + "_" +
+                            "unsampled_cell_clusters.png")
+                plt.close()
+
         # Stop the simulation when all cells have been sampled by the robots
         # or Root Mean Square Error is below a given value
-        if self.step_num >= 300:
+        if self.step_num >= 240 or -1 not in self.sampled:
             metrics = pd.DataFrame({
                 "Time step": range(1, len(self.RMSEs) + 1),
                 "RMSE": self.RMSEs,

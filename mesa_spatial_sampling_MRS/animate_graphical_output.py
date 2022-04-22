@@ -35,34 +35,41 @@ def convert_to_gif(path_to_png_files, gif_name, fps=10, text_filter=None):
 
 
 if __name__ == '__main__':
+    path_to_png_files = "results/3robs_20x20_grid_sampling_all_cells/1/"
+
+    png_files = glob.glob(path_to_png_files + '*.png')
+
     # Animate predicted values
-    convert_to_gif('results/3robs_20x20_grid_sampling_all_cells/1/',
-                   'results/3robs_20x20_grid_sampling_all_cells/1/mean_animation.gif', text_filter="Mean")
+    convert_to_gif(path_to_png_files,
+                   path_to_png_files+'mean_animation.gif', text_filter="Mean")
 
     # Animate kriging variance
-    convert_to_gif('results/3robs_20x20_grid_sampling_all_cells/1/',
-                   'results/3robs_20x20_grid_sampling_all_cells/1/variance_animation.gif', text_filter="Variance")
-
-    # Animate unsampled cell clustering
-    convert_to_gif('results/3robs_20x20_grid_sampling_all_cells/1/',
-                   'results/3robs_20x20_grid_sampling_all_cells/1/clustering_animation.gif', text_filter="clusters")
+    convert_to_gif(path_to_png_files,
+                   path_to_png_files+'variance_animation.gif', text_filter="Variance")
 
     # Animate combined visited cells and robot trajectories
-    convert_to_gif('results/3robs_20x20_grid_sampling_all_cells/1/',
-                   'results/3robs_20x20_grid_sampling_all_cells/1/combined_visited_cells_animation.gif',
+    convert_to_gif(path_to_png_files,
+                   path_to_png_files+'combined_visited_cells_animation.gif',
                    text_filter="combined_visited_cells")
 
-    # Animate robot id (4, 8)'s trajectories
-    convert_to_gif('results/3robs_20x20_grid_sampling_all_cells/1/',
-                   'results/3robs_20x20_grid_sampling_all_cells/1/(4, 8)_animation.gif',
-                   text_filter="(4, 8)")
+    # Animate unsampled cell clustering
+    convert_to_gif(path_to_png_files,
+                   path_to_png_files+'clustering_animation.gif', text_filter="clusters")
 
-    # Animate robot id (5, 10)'s trajectories
-    convert_to_gif('results/3robs_20x20_grid_sampling_all_cells/1/',
-                   'results/3robs_20x20_grid_sampling_all_cells/1/(5, 10)_animation.gif',
-                   text_filter="(5, 10)")
+    # # Animate robot id (4, 8)'s trajectories
+    # convert_to_gif('results/SSI_RS_3robs_20x20/1/',
+    #                'results/SSI_RS_3robs_20x20/1/(4, 8)_animation.gif',
+    #                text_filter="(4, 8)")
+    #
+    # # Animate robot id (5, 10)'s trajectories
+    # convert_to_gif('results/SSI_RS_3robs_20x20/1/',
+    #                'results/SSI_RS_3robs_20x20/1/(5, 10)_animation.gif',
+    #                text_filter="(5, 10)")
+    #
+    # # Animate robot id (16, 8)'s trajectories
+    # convert_to_gif('results/SSI_RS_3robs_20x20/1/',
+    #                'results/SSI_RS_3robs_20x20/1/(16, 8)_animation.gif',
+    #                text_filter="(16, 8)")
 
-    # Animate robot id (16, 8)'s trajectories
-    convert_to_gif('results/3robs_20x20_grid_sampling_all_cells/1/',
-                   'results/3robs_20x20_grid_sampling_all_cells/1/(16, 8)_animation.gif',
-                   text_filter="(16, 8)")
+    # Delete png files
+    os.system('rm ' + path_to_png_files + '*.png')
