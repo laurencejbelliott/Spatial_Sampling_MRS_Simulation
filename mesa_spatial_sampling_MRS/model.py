@@ -198,7 +198,8 @@ class Robot(Agent):
 
                         # Cluster unsampled cells
                         # Get unsampled cells and format as N by M matrix (N observations, M dimensions)
-                        self.model.unsampled_cells = np.where(np.array(self.model.sampled) == -1)
+                        # self.model.unsampled_cells = np.where(np.array(self.model.sampled) == -1)
+                        self.model.unsampled_cells = np.where(np.array(self.model.sampled) >= -1)
                         self.model.unsampled_cells = np.array(list(zip(self.model.unsampled_cells[1],
                                                                        self.model.unsampled_cells[0])))
 
@@ -209,12 +210,13 @@ class Robot(Agent):
                         #                                   depth=1,
                         #                                   method='complete')
 
-                        self.model.unsampled_clusters = fclusterdata(self.model.unsampled_cells,
-                                                          t=math.sqrt(self.model.width*self.model.height)/3,
-                                                          criterion='distance',
-                                                          metric='euclidean',
-                                                          depth=1,
-                                                          method='complete')
+                        if self.model.step_num == 1:
+                            self.model.unsampled_clusters = fclusterdata(self.model.unsampled_cells,
+                                                              t=math.sqrt(self.model.width*self.model.height)/4,
+                                                              criterion='distance',
+                                                              metric='euclidean',
+                                                              depth=1,
+                                                              method='complete')
 
                         # Split variance cells array into sub-arrays based on cluster
                         v_clustered = [{} for cluster in range(1, len(set(self.model.unsampled_clusters)) + 1)]
@@ -230,21 +232,44 @@ class Robot(Agent):
                         self.model.candidate_goals = []
                         # cluster_max_vs = []
                         print("Number of clusters:", len(v_clustered))
+                        print("Number of cells:", self.model.width * self.model.height)
 
+                        cluster_count = 0
+                        clusters_sampled = []
                         for cluster in v_clustered:
+                            cluster_count += 1
                             # cluster_max_v_cell_str = max(cluster, key=cluster.get)
-                            cluster_max_v_cell_str = max(cluster, key=cluster.get)
-                            cluster_max_v_cell_str = [re.sub("[^0-9]", "", word) for
-                                                      word in cluster_max_v_cell_str.split()]
-                            for word in cluster_max_v_cell_str:
-                                if not word.isdigit():
-                                    cluster_max_v_cell_str.remove(word)
+                            cluster_sampled = False
+                            for cell in cluster.keys():
+                                cell = [re.sub("[^0-9]", "", word) for
+                                                          word in cell.split()]
 
-                            cluster_max_v_cell = [int(word) for word in cluster_max_v_cell_str]
-                            cluster_max_v_cell = [cluster_max_v_cell[1], cluster_max_v_cell[0]]
-                            if self.model.verbose:
-                                print(cluster_max_v_cell)
-                            self.model.candidate_goals.append(cluster_max_v_cell)
+                                for word in cell:
+                                    if not word.isdigit():
+                                        cell.remove(word)
+
+                                cell = [int(word) for word in cell]
+                                cell = [cell[1], cell[0]]
+                                if self.model.sampled[cell[0], cell[1]] != -1:
+                                    cluster_sampled = True
+                                    clusters_sampled.append(True)
+
+                            if not cluster_sampled:
+                                clusters_sampled.append(False)
+                                cluster_max_v_cell_str = max(cluster, key=cluster.get)
+                                cluster_max_v_cell_str = [re.sub("[^0-9]", "", word) for
+                                                          word in cluster_max_v_cell_str.split()]
+                                for word in cluster_max_v_cell_str:
+                                    if not word.isdigit():
+                                        cluster_max_v_cell_str.remove(word)
+
+                                cluster_max_v_cell = [int(word) for word in cluster_max_v_cell_str]
+                                cluster_max_v_cell = [cluster_max_v_cell[1], cluster_max_v_cell[0]]
+                                if self.model.verbose:
+                                    print(cluster_max_v_cell)
+                                self.model.candidate_goals.append(cluster_max_v_cell)
+                        if False not in clusters_sampled and clusters_sampled != []:
+                            self.model.clusters_sampled = True
 
                         if self.model.verbose:
                             print("Num. clusters:", len(self.model.candidate_goals))
@@ -513,6 +538,7 @@ class SpatialSamplingModel(Model):
         self.trial_num = trial_num
         self.combined_cells_visited = np.zeros((self.width, self.height))
         self.visualisation_dir = results_dir+str(self.trial_num)+"/"
+        self.clusters_sampled = False
         self.verbose = verbose
 
         # Delete old figures
@@ -702,7 +728,7 @@ class SpatialSamplingModel(Model):
 
         # Stop the simulation when all cells have been sampled by the robots
         # or Root Mean Square Error is below a given value
-        if self.step_num >= 240 or -1 not in self.sampled:
+        if self.step_num >= 240 or -1 not in self.sampled or self.clusters_sampled:
             metrics = pd.DataFrame({
                 "Time step": range(1, len(self.RMSEs) + 1),
                 "RMSE": self.RMSEs,
