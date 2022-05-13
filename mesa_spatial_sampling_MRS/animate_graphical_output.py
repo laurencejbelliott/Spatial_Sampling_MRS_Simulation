@@ -54,7 +54,7 @@ if __name__ == '__main__':
 
     # Animate unsampled cell clustering
     convert_to_gif(path_to_png_files,
-                   path_to_png_files+'clustering_animation.gif', text_filter="clusters")
+                    path_to_png_files+'clustering_animation.gif', text_filter="clusters")
 
     # # Animate robot id (4, 8)'s trajectories
     # convert_to_gif('results/SSI_RS_3robs_20x20/1/',

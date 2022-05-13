@@ -23,8 +23,13 @@ def draw(agent):
 with open(r"interpolated_jaime_compaction_0cm_kpas.pickle", "rb") as f:
     interpolated_compaction_data = pickle.load(f)
 
+
+# width = np.shape(interpolated_compaction_data)[0]
+# height = np.shape(interpolated_compaction_data)[1]
 width = np.shape(interpolated_compaction_data)[1]
 height = np.shape(interpolated_compaction_data)[0]
+
+# canvas_element = CanvasGrid(draw, width, height, width*6, height*6)
 canvas_element = CanvasGrid(draw, width, height, width*20, height*20)
 RMSE_chart = ChartModule([{"Label": "RMSE",
                            "Color": "Black"}],
@@ -35,7 +40,10 @@ RMSE_chart = ChartModule([{"Label": "RMSE",
 model_params = {
     "height": height,
     "width": width,
-    "num_robots": 3
+    "num_robots": 3,
+    "vis_freq": 2,
+    "task_allocation": "SSI",
+    "sampling_strategy": "dynamic"
 }
 
 server = ModularServer(

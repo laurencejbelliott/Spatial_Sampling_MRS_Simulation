@@ -2,7 +2,10 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from kriging_utils.kriging import predict_by_kriging
-import pickle
+import random
+
+random.seed(2)
+sample_ratio = 0.05
 
 compaction_df = pd.read_csv("jaime_compaction_0cm_kpas.csv")
 print(compaction_df)
@@ -45,15 +48,21 @@ print("Lon to lat ratio:", lon_to_lat_ratio)
 xgrid = np.arange(np.min(compaction_df["lon"]), np.max(compaction_df["lon"]), lon_range/env_width)
 ygrid = np.arange(np.min(compaction_df["lat"]), np.max(compaction_df["lat"]), lat_range/env_height)
 
-x_arr = np.array(compaction_df["lon"])
-y_arr = np.array(compaction_df["lat"])
-o_arr = np.array(compaction_df["0.0 cm"])
+
+# Sample random points from the dataframe to test the kriging interpolation
+random_indices = random.sample(range(len(compaction_df["0.0 cm"])), round(len(list(compaction_df["0.0 cm"])) *
+                                                                          sample_ratio))
+print("Number of random samples:", len(random_indices))
+
+x_arr = np.array(compaction_df["lon"][random_indices])
+y_arr = np.array(compaction_df["lat"][random_indices])
+o_arr = np.array(compaction_df["0.0 cm"][random_indices])
 
 plt.style.use('dark_background')
 plt.scatter(x=x_arr, y=y_arr, c=o_arr, cmap="gray")
 plt.colorbar()
 plt.title("Ground truth compaction (kPas) data at 0.0 cm")
-plt.savefig("ground_truth_compaction_0cm.png")
+plt.savefig("dummy_data_points.png")
 plt.show()
 plt.close()
 # for sampled_cell in sampled_cells:
@@ -82,9 +91,15 @@ plt.figure('Mean')
 plt.title("Compaction (kPas) Predicted by Kriging Interpolation")
 plt.imshow(m, origin="lower", cmap="gray")
 plt.colorbar()
-plt.savefig("interpolated_compaction_0cm.png")
+plt.savefig("kriging_test_means.png")
 plt.show()
 print(m)
-with open(r"interpolated_jaime_compaction_0cm_kpas.pickle", "wb") as output_file:
-    pickle.dump(m, output_file)
 
+print(np.shape(v))
+plt.figure('Variance')
+plt.title("Kriging Variance")
+plt.imshow(v, origin="lower", cmap="gray")
+plt.colorbar()
+plt.savefig("kriging_test_variance.png")
+plt.show()
+print(m)
