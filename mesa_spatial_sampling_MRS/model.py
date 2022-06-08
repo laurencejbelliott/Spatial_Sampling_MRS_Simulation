@@ -85,7 +85,7 @@ class Robot(Agent):
 
             # Assign the lowest travel cost goal from the robot's goal queue
 
-            if self.model.task_allocation == "RR":
+            if self.model.task_allocation == "Round Robin":
                 # goal_pos = sorted(self.goals)[0]
                 goal_pos = self.goals[0]
             else:
@@ -206,7 +206,7 @@ class Robot(Agent):
                     self.model.avg_variance = np.mean(self.model.v)
                     # print("RMSE:", self.model.RMSE)
 
-                    if self.model.sampling_strategy == "dynamic":
+                    if self.model.sampling_strategy == "Dynamic":
 
                         # Cluster unsampled cells
                         # Get unsampled cells and format as N by M matrix (N observations, M dimensions)
@@ -286,7 +286,7 @@ class Robot(Agent):
                         if self.model.verbose:
                             print("Num. clusters:", len(self.model.candidate_goals))
 
-                    elif self.model.sampling_strategy == "random":
+                    elif self.model.sampling_strategy == "Random":
                         # Set goals as x random unsampled cells (candidate goals)
                         # where x is the number of robots
                         self.model.candidate_goals = []
@@ -312,9 +312,9 @@ class Robot(Agent):
                     if self.model.verbose:
                         print("Candidate goals:", self.model.candidate_goals)
 
-                    if self.model.task_allocation == "SSI":
+                    if self.model.task_allocation == "Sequential Single Item (SSI) auction":
                         self.model.SSI_TA()
-                    elif self.model.task_allocation == "RR":
+                    elif self.model.task_allocation == "Round Robin":
                         self.model.RR_TA()
 
             # If the robot hasn't reached its next sampling goal
@@ -504,8 +504,9 @@ class UnsampledCell(SampledCell):
 
 
 class SpatialSamplingModel(Model):
-    def __init__(self, height=20, width=20, num_robots=2, task_allocation="SSI", trial_num=9,
-                 sampling_strategy="dynamic",
+    def __init__(self, height=20, width=20, num_robots=2, task_allocation="Sequential Single Item (SSI) auction",
+                 trial_num=9, max_steps=100,
+                 sampling_strategy="Dynamic",
                  results_dir="./results/3robs_20x20_grid_sampling_all_cells/",
                  verbose=True, vis_freq=1):
         super(SpatialSamplingModel, self).__init__(seed=trial_num)
@@ -545,6 +546,8 @@ class SpatialSamplingModel(Model):
         self.width = width
         self.height = height
 
+        self.max_steps = max_steps
+
         self.variogram = "gaussian"
         self.num_robots = num_robots
         self.robots = []
@@ -557,8 +560,8 @@ class SpatialSamplingModel(Model):
         self.robot_travel_distances = {}
         self.robot_idle_times = {}
         self.robot_waiting_times = {}
-        self.task_allocation = task_allocation  # "RR" or "SSI"
-        self.sampling_strategy = sampling_strategy  # "dynamic" or "random"
+        self.task_allocation = task_allocation  # "Round Robin" or "Sequential Single Item (SSI) auction"
+        self.sampling_strategy = sampling_strategy  # "Dynamic" or "Random"
         self.allocated_tasks = []
         self.RR_rob_index = 0
         self.RR_task_index = 0
@@ -775,7 +778,7 @@ class SpatialSamplingModel(Model):
             with open(self.vis_data_dir + str(self.step_num) + "_" + "variance.pickle", "wb") as f:
                 pickle.dump(self.v, f)
 
-        if self.sampling_strategy == "dynamic":
+        if self.sampling_strategy == "Dynamic":
             if len(self.unsampled_cells) > 0 and len(self.unsampled_clusters) > 0:
                 # print("Unsampled cells:", self.unsampled_cells)
                 # print("Unsampled cell clusters:", self.unsampled_clusters)
@@ -806,7 +809,7 @@ class SpatialSamplingModel(Model):
 
         # Stop the simulation when all cells have been sampled by the robots
         # or Root Mean Square Error is below a given value
-        if self.step_num >= 240 or -1 not in self.sampled or self.clusters_sampled:
+        if self.step_num >= self.max_steps or -1 not in self.sampled or self.clusters_sampled:
             metrics = pd.DataFrame({
                 "Time step": range(1, len(self.RMSEs) + 1),
                 "RMSE": self.RMSEs,
