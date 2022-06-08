@@ -29,8 +29,8 @@ def animate_batch(batch_path, num_trials):
         convert_to_gif(path_to_png_files,
                        path_to_png_files + 'clustering_animation.gif', text_filter="clusters")
 
-        # Delete png files
-        os.system('rm ' + path_to_png_files + '*.png')
+        # # Delete png files
+        # os.system('rm ' + path_to_png_files + '*.png')
 
 
 if __name__ == '__main__':

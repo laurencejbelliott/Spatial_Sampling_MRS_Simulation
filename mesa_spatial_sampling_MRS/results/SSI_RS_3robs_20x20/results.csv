@@ -1,4 +1,2 @@
-,trial_num,Run,Average Variance,Average time to complete a task,Maximum visits to a cell,RMSE,Step number,Total cells sampled,Total distance travelled,Total idle time,Total waiting time,width,height,task_allocation,num_robots,sampling_strategy,results_dir
-0,1,18,73.25266933337393,2.4727047146401984,4.0,19.3323729641881,100,76,209,88,0,18,13,SSI,3,random,./results/SSI_RS_3robs_20x20/
-1,2,18,86.58535637829785,2.5056089743589745,4.0,20.21848884811522,100,75,208,89,0,18,13,SSI,3,random,./results/SSI_RS_3robs_20x20/
-2,3,18,190.0026663973752,2.5181609195402297,5.0,19.785431202576166,100,69,198,99,0,18,13,SSI,3,random,./results/SSI_RS_3robs_20x20/
+,trial_num,Run,Average Variance,Average time to complete a task,Maximum visits to a cell,RMSE,Step number,Total cells sampled,Total distance travelled,Total idle time,Total waiting time,width,height,task_allocation,num_robots,sampling_strategy,results_dir,vis_freq
+0,1,162,56.125058285436566,32.523809523809526,2.0,4.721472069506375,240,21,686,31,0,162,110,SSI,3,random,./results/SSI_RS_3robs_20x20/,5

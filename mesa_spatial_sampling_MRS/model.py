@@ -7,6 +7,7 @@ import re
 import copy
 import pickle
 import math
+import shutil
 
 import pandas as pd
 from mesa import Model, Agent
@@ -503,7 +504,7 @@ class UnsampledCell(SampledCell):
 
 
 class SpatialSamplingModel(Model):
-    def __init__(self, height=20, width=20, num_robots=2, task_allocation="SSI", trial_num=1,
+    def __init__(self, height=20, width=20, num_robots=2, task_allocation="SSI", trial_num=9,
                  sampling_strategy="dynamic",
                  results_dir="./results/3robs_20x20_grid_sampling_all_cells/",
                  verbose=True, vis_freq=1):
@@ -514,12 +515,26 @@ class SpatialSamplingModel(Model):
         with open(r"interpolated_jaime_compaction_0cm_kpas.pickle", "rb") as input_file:
             self.gaussian = np.array(pickle.load(input_file))
 
-        # self.gaussian = np.flipud(self.gaussian)
+        # Delete old files and figures
+        self.visualisation_dir = results_dir+str(trial_num)+"/"
+        old_figures = glob.glob(self.visualisation_dir+"*")
+        for f in old_figures:
+            try:
+                os.remove(f)
+            except IsADirectoryError:
+                shutil.rmtree(f)
+
+        # Make visualisation data folder if one doesn't exist in current directory
+        self.vis_data_dir = self.visualisation_dir+"/visualisation_data/"
+        if not os.path.exists(self.vis_data_dir):
+            os.makedirs(self.vis_data_dir)
+
 
         plt.imshow(self.gaussian)
+        pickle.dump(self.gaussian, open(self.vis_data_dir + "ground_truth_distribution.pickle", "wb"))
         plt.title("Underlying soil compaction data")
         plt.colorbar()
-        plt.savefig("ground_truth_distribution.png")
+        plt.savefig("ground_truth_distribution.png", dpi=300)
         plt.close()
         # self.gaussian = np.swapaxes(self.gaussian, 0, 1)
         # self.gaussian = self.gaussian.swapaxes(0, 1)
@@ -549,15 +564,9 @@ class SpatialSamplingModel(Model):
         self.RR_task_index = 0
         self.trial_num = trial_num
         self.combined_cells_visited = np.zeros((self.width, self.height))
-        self.visualisation_dir = results_dir+str(self.trial_num)+"/"
         self.clusters_sampled = False
         self.verbose = verbose
         self.vis_freq = vis_freq
-
-        # Delete old figures
-        old_figures = glob.glob(self.visualisation_dir+"*")
-        for f in old_figures:
-            os.remove(f)
 
         self.data_collector = DataCollector(model_reporters={"RMSE": "RMSE"})
 
@@ -675,53 +684,96 @@ class SpatialSamplingModel(Model):
                         "c": agent.color
                     }
 
+                    # Dump agent's trajectory to pickle file
+                    with open(self.vis_data_dir + str(self.step_num) + "_" + "trajectory_" + str(agent.unique_id) + ".pickle", "wb") as f:
+                        pickle.dump(trajectory_plot_info, f)
+
                     plt.plot(trajectory_plot_info[agent.unique_id]["x"],
                              trajectory_plot_info[agent.unique_id]["y"],
-                             c=trajectory_plot_info[agent.unique_id]["c"])
+                             c=trajectory_plot_info[agent.unique_id]["c"],
+                             linewidth=0.6)
 
                     plt.colorbar()
                     plt.scatter(x=agent.sampled_cells_x, y=agent.sampled_cells_y, marker="o",
-                                c=trajectory_plot_info[agent.unique_id]["c"])
+                                c=trajectory_plot_info[agent.unique_id]["c"], zorder=1)
+
+                    plt.scatter(x=[agent.sampled_cells_x[0]], y=[agent.sampled_cells_y[0]], marker="o",
+                                c="red", zorder=10)
+
                     plt.title(
                         "Map of Cells Visited by Robot " + str(agent.unique_id) + " at Step " + str(self.step_num))
                     plt.savefig(
-                        self.visualisation_dir + str(self.step_num) + "_" + str(agent.unique_id) + "_visited_cells.png")
+                        self.visualisation_dir + str(self.step_num) + "_" + str(agent.unique_id) + "_visited_cells.png",
+                        dpi=300)
                     plt.close()
+
+                    # Dump agent's visited cells to pickle file
+                    with open(self.vis_data_dir + str(self.step_num) + "_" + "visited_cells_" + str(agent.unique_id) + ".pickle", "wb") as f:
+                        pickle.dump(agent.visited, f)
+
                     self.combined_cells_visited += agent.visited
+
+            # Dump combined visited cells to pickle file
+            with open(self.vis_data_dir + str(self.step_num) + "_" + "combined_cells_visited.pickle", "wb") as f:
+                pickle.dump(self.combined_cells_visited, f)
 
             ax = plt.figure("Combined visited cells").gca()
             ax.yaxis.get_major_locator().set_params(integer=True)
             ax.xaxis.get_major_locator().set_params(integer=True)
 
             plt.imshow(np.swapaxes(self.combined_cells_visited, 0, 1), origin="lower", cmap="gray")
-            plt.colorbar()
+            plt.colorbar(ticks=np.linspace(0, np.max(self.combined_cells_visited), dtype=int))
             for robot_id in trajectory_plot_info.keys():
                 plt.plot(trajectory_plot_info[robot_id]["x"],
                          trajectory_plot_info[robot_id]["y"],
-                         c=trajectory_plot_info[robot_id]["c"])
+                         c=trajectory_plot_info[robot_id]["c"],
+                         linewidth=0.6)
             for agent in self.schedule.agents:
                 if agent.type == 0:
-                    plt.scatter(x=agent.sampled_cells_x, y=agent.sampled_cells_y, marker="o",
+                    plt.scatter(x=agent.sampled_cells_x[1:-1], y=agent.sampled_cells_y[1:-1], marker="o",
                                 c=trajectory_plot_info[agent.unique_id]["c"])
 
+                    plt.scatter(x=[agent.sampled_cells_x[0]], y=[agent.sampled_cells_y[0]], marker="s",
+                                c=trajectory_plot_info[agent.unique_id]["c"], zorder=10)
+
+                    plt.scatter(x=[agent.sampled_cells_x[-1]], y=[agent.sampled_cells_y[-1]], marker="X",
+                                c=trajectory_plot_info[agent.unique_id]["c"], zorder=10)
+
                 plt.title("Combined Map of Visited Cells  at Step " + str(self.step_num))
-            plt.legend(["Robot " + str(robot_id) for robot_id in trajectory_plot_info.keys()])
-            plt.savefig(self.visualisation_dir + str(self.step_num) + "_" + "combined_visited_cells.png")
+            plt.legend(["Robot " + str(i) for i in range(1, len(self.robots) + 1)])
+            plt.savefig(self.visualisation_dir + str(self.step_num) + "_" + "combined_visited_cells.png",
+                        dpi=300)
             plt.close()
 
             # Export as images
             plt.figure('Mean')
             plt.title("Values Predicted by Kriging Interpolation at Step " + str(self.step_num))
-            plt.imshow(self.m, origin="lower")
+            # Get ground truth min and mix
+            gt_min = np.min(self.gaussian)
+            gt_max = np.max(self.gaussian)
+
+            # Normalise predicted values in range of ground truth min and max for visualisation
+            plt.imshow(self.m, origin="lower", vmin=gt_min, vmax=gt_max)
             plt.colorbar()
-            plt.savefig(self.visualisation_dir + str(self.step_num) + "_" + 'Mean.png')
+            plt.savefig(self.visualisation_dir + str(self.step_num) + "_" + 'Mean.png',
+                        dpi=300)
             plt.close()
+
+            # Dump predicted values to pickle file
+            with open(self.vis_data_dir + str(self.step_num) + "_" + "mean.pickle", "wb") as f:
+                pickle.dump(self.m, f)
+
             plt.figure('Variance')
             plt.title("Kriging Variance at Step " + str(self.step_num))
-            plt.imshow(self.v, origin="lower")
+            plt.imshow(self.v, origin="lower", vmin=1, vmax=600)
             plt.colorbar()
-            plt.savefig(self.visualisation_dir + str(self.step_num) + "_" + 'Variance.png')
+            plt.savefig(self.visualisation_dir + str(self.step_num) + "_" + 'Variance.png',
+                        dpi=300)
             plt.close()
+
+            # Dump predicted values to pickle file
+            with open(self.vis_data_dir + str(self.step_num) + "_" + "variance.pickle", "wb") as f:
+                pickle.dump(self.v, f)
 
         if self.sampling_strategy == "dynamic":
             if len(self.unsampled_cells) > 0 and len(self.unsampled_clusters) > 0:
@@ -731,15 +783,25 @@ class SpatialSamplingModel(Model):
                     # Plot clusters of unsampled cells
                     plt.scatter(self.unsampled_cells[:, 1], self.unsampled_cells[:, 0],
                                 c=self.unsampled_clusters)
-                    plt.title("Unsampled Cells Clustered by Distance at Step " + str(self.step_num))
+                    # plt.title("Unsampled Cells Clustered by Distance at Step " + str(self.step_num))
+                    plt.title("Cells Clustered by Distance")
                     plt.savefig(self.visualisation_dir + str(self.step_num) + "_" +
-                                "unsampled_cell_clusters.png")
+                                "unsampled_cell_clusters.png", dpi=300)
                     plt.close()
+
+                    # Dump unsampled cells to pickle file
+                    with open(self.vis_data_dir + str(self.step_num) + "_" + "unsampled_cells.pickle", "wb") as f:
+                        pickle.dump(self.unsampled_cells, f)
+
+                    # Dump unsampled cell clusters to pickle file
+                    with open(self.vis_data_dir + str(self.step_num) + "_" + "unsampled_cell_clusters.pickle", "wb") as f:
+                        pickle.dump(self.unsampled_clusters, f)
+
             else:
                 plt.figure()
                 plt.title("Unsampled Cells Clustered by Distance  at Step " + str(self.step_num))
                 plt.savefig(self.visualisation_dir + str(self.step_num) + "_" +
-                            "unsampled_cell_clusters.png")
+                            "unsampled_cell_clusters.png", dpi=300)
                 plt.close()
 
         # Stop the simulation when all cells have been sampled by the robots

@@ -23,13 +23,12 @@ env_width = 324  # m converted from lon
 env_height = 220  # m converted from lat
 
 # Scaling down environment resolution due to memory limitations
-env_width /= 8
-env_height /= 8
+# env_width /= 2
+# env_height /= 2
+env_width /= 2
+env_height /= 2
 print("Env. width:", env_width)
 print("Env. height:", env_height)
-
-# env_width = int(env_width / 4)
-# env_height = int(env_height / 4)
 
 
 # Perform kriging interpolation from sampled values
@@ -85,6 +84,16 @@ plt.colorbar()
 plt.savefig("interpolated_compaction_0cm.png")
 plt.show()
 print(m)
+
+# print(plt.style.available)
+plt.style.use('default')
+plt.figure('Mean')
+plt.title("Compaction (kPas) Predicted by Kriging Interpolation")
+plt.imshow(m, origin="lower")
+plt.colorbar()
+plt.savefig("interpolated_compaction_0cm_colour.png")
+plt.show()
+
 with open(r"interpolated_jaime_compaction_0cm_kpas.pickle", "wb") as output_file:
     pickle.dump(m, output_file)
 
