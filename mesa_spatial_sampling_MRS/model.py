@@ -505,7 +505,7 @@ class UnsampledCell(SampledCell):
 
 class SpatialSamplingModel(Model):
     def __init__(self, height=20, width=20, num_robots=2, task_allocation="Sequential Single Item (SSI) auction",
-                 trial_num=9, max_steps=100,
+                 trial_num=1, max_steps=100,
                  sampling_strategy="Dynamic",
                  results_dir="./results/3robs_20x20_grid_sampling_all_cells/",
                  verbose=True, vis_freq=1):
@@ -532,6 +532,8 @@ class SpatialSamplingModel(Model):
 
 
         plt.imshow(self.gaussian)
+        plt.xlabel("Cell X co-ordinate")
+        plt.ylabel("Cell Y co-ordinate")
         pickle.dump(self.gaussian, open(self.vis_data_dir + "ground_truth_distribution.pickle", "wb"))
         plt.title("Underlying soil compaction data")
         plt.colorbar()
@@ -680,6 +682,8 @@ class SpatialSamplingModel(Model):
                     ax.yaxis.get_major_locator().set_params(integer=True)
                     ax.xaxis.get_major_locator().set_params(integer=True)
                     plt.imshow(agent.visited, origin="lower", cmap="gray")
+                    plt.xlabel("Cell X co-ordinate")
+                    plt.ylabel("Cell Y co-ordinate")
 
                     trajectory_plot_info[agent.unique_id] = {
                         "x": [agent.trajectory[t][0] for t in range(len(agent.trajectory))],
@@ -700,11 +704,13 @@ class SpatialSamplingModel(Model):
                     plt.scatter(x=agent.sampled_cells_x, y=agent.sampled_cells_y, marker="o",
                                 c=trajectory_plot_info[agent.unique_id]["c"], zorder=1)
 
-                    plt.scatter(x=[agent.sampled_cells_x[0]], y=[agent.sampled_cells_y[0]], marker="o",
-                                c="red", zorder=10)
+                    # plt.scatter(x=[agent.sampled_cells_x[0]], y=[agent.sampled_cells_y[0]], marker="o",
+                    #             c="red", zorder=10)
 
                     plt.title(
                         "Map of Cells Visited by Robot " + str(agent.unique_id) + " at Step " + str(self.step_num))
+                    plt.xlabel("Cell X co-ordinate")
+                    plt.ylabel("Cell Y co-ordinate")
                     plt.savefig(
                         self.visualisation_dir + str(self.step_num) + "_" + str(agent.unique_id) + "_visited_cells.png",
                         dpi=300)
@@ -726,13 +732,15 @@ class SpatialSamplingModel(Model):
 
             plt.imshow(np.swapaxes(self.combined_cells_visited, 0, 1), origin="lower", cmap="gray")
             plt.colorbar(ticks=np.linspace(0, np.max(self.combined_cells_visited), dtype=int))
+            plt.xlabel("Cell X co-ordinate")
+            plt.ylabel("Cell Y co-ordinate")
             for robot_id in trajectory_plot_info.keys():
                 plt.plot(trajectory_plot_info[robot_id]["x"],
                          trajectory_plot_info[robot_id]["y"],
                          c=trajectory_plot_info[robot_id]["c"],
                          linewidth=0.6)
             for agent in self.schedule.agents:
-                if agent.type == 0:
+                if agent.type == 0 and len(agent.sampled_cells_x) > 0:
                     plt.scatter(x=agent.sampled_cells_x[1:-1], y=agent.sampled_cells_y[1:-1], marker="o",
                                 c=trajectory_plot_info[agent.unique_id]["c"])
 
@@ -743,6 +751,8 @@ class SpatialSamplingModel(Model):
                                 c=trajectory_plot_info[agent.unique_id]["c"], zorder=10)
 
                 plt.title("Combined Map of Visited Cells  at Step " + str(self.step_num))
+                plt.xlabel("Cell X co-ordinate")
+                plt.ylabel("Cell Y co-ordinate")
             plt.legend(["Robot " + str(i) for i in range(1, len(self.robots) + 1)])
             plt.savefig(self.visualisation_dir + str(self.step_num) + "_" + "combined_visited_cells.png",
                         dpi=300)
@@ -757,6 +767,8 @@ class SpatialSamplingModel(Model):
 
             # Normalise predicted values in range of ground truth min and max for visualisation
             plt.imshow(self.m, origin="lower", vmin=gt_min, vmax=gt_max)
+            plt.xlabel("Cell X co-ordinate")
+            plt.ylabel("Cell Y co-ordinate")
             plt.colorbar()
             plt.savefig(self.visualisation_dir + str(self.step_num) + "_" + 'Mean.png',
                         dpi=300)
@@ -769,6 +781,8 @@ class SpatialSamplingModel(Model):
             plt.figure('Variance')
             plt.title("Kriging Variance at Step " + str(self.step_num))
             plt.imshow(self.v, origin="lower", vmin=1, vmax=600)
+            plt.xlabel("Cell X co-ordinate")
+            plt.ylabel("Cell Y co-ordinate")
             plt.colorbar()
             plt.savefig(self.visualisation_dir + str(self.step_num) + "_" + 'Variance.png',
                         dpi=300)
@@ -786,6 +800,8 @@ class SpatialSamplingModel(Model):
                     # Plot clusters of unsampled cells
                     plt.scatter(self.unsampled_cells[:, 1], self.unsampled_cells[:, 0],
                                 c=self.unsampled_clusters)
+                    plt.xlabel("Cell X co-ordinate")
+                    plt.ylabel("Cell Y co-ordinate")
                     # plt.title("Unsampled Cells Clustered by Distance at Step " + str(self.step_num))
                     plt.title("Cells Clustered by Distance")
                     plt.savefig(self.visualisation_dir + str(self.step_num) + "_" +
@@ -887,14 +903,40 @@ class SpatialSamplingModel(Model):
                 bids = {}
                 for agent in self.schedule.agents:
                     if agent.type == 0:  # True if the agent is a robot
-                        try:
-                            agent.bid = np.sum([agent.movement_matrix[step[1], step[0]] for step in agent.astar.run(
-                                agent.pos, tuple(task))])
-                            if self.verbose:
-                                print("Robot", str(agent.unique_id), "bid:", str(agent.bid))
-                            bids[str(agent.unique_id)] = agent.bid
-                        except TypeError:
-                            pass
+                        # try:
+                        #     agent.bid = np.sum([agent.movement_matrix[step[1], step[0]] for step in agent.astar.run(
+                        #         agent.pos, tuple(task))])
+                        #     if self.verbose:
+                        #         print("Robot", str(agent.unique_id), "bid:", str(agent.bid))
+                        #     bids[str(agent.unique_id)] = agent.bid
+                        # except TypeError:
+                        #     pass
+                        # Insertion heuristic
+                        # (insert task where it least increases the cost of navigating to the queued tasks)
+                        best_queue_cost = -1
+                        for i in range(len(agent.goals) + 1):
+                            candidate_goal_queue = copy.copy(agent.goals)
+                            candidate_goal_queue.insert(i, task)
+
+                            queue_cost = 0
+                            for j in range(len(candidate_goal_queue)):
+                                if j > 0:
+                                    prev_goal = candidate_goal_queue[j - 1]
+                                    # queue_cost += np.sum([self.movement_matrix[step[0], step[1]] for
+                                    #                       step in self.astar.run(prev_goal, candidate_goal_queue[j])])
+                                    queue_cost += np.sum([agent.movement_matrix[step[1], step[0]] for
+                                                          step in
+                                                          agent.astar.run(prev_goal, candidate_goal_queue[j])])
+                                else:
+                                    # queue_cost += np.sum([self.movement_matrix[step[0], step[1]] for step in self.astar.run(
+                                    #     self.pos, goal_pos)])
+                                    queue_cost += np.sum(
+                                        [agent.movement_matrix[step[1], step[0]] for step in agent.astar.run(
+                                            agent.pos, task)])
+                            # print(queue_cost)
+                            if best_queue_cost == -1 or best_queue_cost > queue_cost:
+                                best_queue_cost = queue_cost
+                                bids[str(agent.unique_id)] = best_queue_cost
                 winning_agent = min(bids, key=bids.get)
                 # print("Winning agent:", winning_agent)
 

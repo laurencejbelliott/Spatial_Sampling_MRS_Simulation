@@ -1,2 +1,2 @@
 ,trial_num,Run,Average Variance,Average time to complete a task,Maximum visits to a cell,RMSE,Step number,Total cells sampled,Total distance travelled,Total idle time,Total waiting time,width,height,task_allocation,num_robots,sampling_strategy,results_dir,vis_freq
-0,1,162,117.49216346575679,17.062058714232624,2.0,5.50050644129791,240,45,672,45,0,162,110,SSI,3,dynamic,./results/SSI_DS_3robs_20x20/,5
+0,1,162,191.21601340896578,24.433333333333334,2.0,4.345013164154915,100,11,286,11,0,162,110,Sequential Single Item (SSI) auction,3,Dynamic,./results/SSI_DS_3robs_20x20/,1

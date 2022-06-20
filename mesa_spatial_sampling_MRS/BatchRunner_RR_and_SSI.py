@@ -9,10 +9,10 @@ def main():
     BatchRunner = BatchRunnerMP(SpatialSamplingModel,
                                 fixed_parameters={
                                     "width": 162, "height": 110,
-                                    "task_allocation": "SSI", "num_robots": 3,
-                                    "sampling_strategy": "random",
+                                    "task_allocation": "Sequential Single Item (SSI) auction", "num_robots": 3,
+                                    "sampling_strategy": "Random",
                                     "results_dir": results_dir,
-                                    "vis_freq": 5
+                                    "vis_freq": 1
                                 },
                                 variable_parameters={
                                     "trial_num": range(1, 2, 1)},
@@ -43,10 +43,10 @@ def main():
     BatchRunner = BatchRunnerMP(SpatialSamplingModel,
                                 fixed_parameters={
                                     "width": 162, "height": 110,
-                                    "task_allocation": "SSI", "num_robots": 3,
-                                    "sampling_strategy": "dynamic",
+                                    "task_allocation": "Sequential Single Item (SSI) auction", "num_robots": 3,
+                                    "sampling_strategy": "Dynamic",
                                     "results_dir": results_dir,
-                                    "vis_freq": 5},
+                                    "vis_freq": 1},
                                 variable_parameters={
                                     "trial_num": range(1, 2, 1)},  # Define number of iterations for output in correct dirs
                                 iterations=1,
@@ -76,10 +76,10 @@ def main():
     BatchRunner = BatchRunnerMP(SpatialSamplingModel,
                                 fixed_parameters={
                                     "width": 162, "height": 110,
-                                    "task_allocation": "RR", "num_robots": 3,
-                                    "sampling_strategy": "random",
+                                    "task_allocation": "Round Robin", "num_robots": 3,
+                                    "sampling_strategy": "Random",
                                     "results_dir": results_dir,
-                                    "vis_freq": 5},
+                                    "vis_freq": 1},
                                 variable_parameters={
                                     "trial_num": range(1, 2, 1)},  # Define number of iterations for output in correct dirs
                                 iterations=1,
@@ -109,10 +109,10 @@ def main():
     BatchRunner = BatchRunnerMP(SpatialSamplingModel,
                                 fixed_parameters={
                                     "width": 162, "height": 110,
-                                    "task_allocation": "RR", "num_robots": 3,
-                                    "sampling_strategy": "dynamic",
+                                    "task_allocation": "Round Robin", "num_robots": 3,
+                                    "sampling_strategy": "Dynamic",
                                     "results_dir": results_dir,
-                                    "vis_freq": 5},
+                                    "vis_freq": 1},
                                 variable_parameters={
                                     "trial_num": range(1, 2, 1)},  # Define number of iterations for output in correct dirs
                                 iterations=1,

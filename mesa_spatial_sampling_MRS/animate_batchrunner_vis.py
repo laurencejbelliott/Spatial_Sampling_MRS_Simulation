@@ -25,13 +25,13 @@ def animate_batch(batch_path, num_trials):
                        path_to_png_files + 'combined_visited_cells_animation.gif',
                        text_filter="combined_visited_cells")
 
-        # Animate unsampled cell clustering
-        convert_to_gif(path_to_png_files,
-                       path_to_png_files + 'clustering_animation.gif', text_filter="clusters")
+        # # Animate unsampled cell clustering
+        # convert_to_gif(path_to_png_files,
+        #                path_to_png_files + 'clustering_animation.gif', text_filter="clusters")
 
         # # Delete png files
         # os.system('rm ' + path_to_png_files + '*.png')
 
 
 if __name__ == '__main__':
-    animate_batch("results/SSI_DS_3robs_20x20/", 3)
+    animate_batch("results/SSI_RS_3robs_20x20/", 1)

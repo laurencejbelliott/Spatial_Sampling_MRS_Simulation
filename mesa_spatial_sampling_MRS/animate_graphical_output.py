@@ -35,7 +35,7 @@ def convert_to_gif(path_to_png_files, gif_name, fps=10, text_filter=None):
 
 
 if __name__ == '__main__':
-    path_to_png_files = "results/3robs_20x20_grid_sampling_all_cells/9/"
+    path_to_png_files = "results/3robs_20x20_grid_sampling_all_cells/1/"
 
     png_files = glob.glob(path_to_png_files + '*.png')
 
