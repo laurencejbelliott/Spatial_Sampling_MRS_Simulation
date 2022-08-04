@@ -71,20 +71,9 @@ class Robot(Agent):
             # goal_pos = tuple([int(coord) for coord in goal_pos])
             # # print(goal_pos)
             self.sample_pos(goal_pos)
-            self.model.allocated_tasks.append(goal_pos)
+            self.model.allocated_tasks.add(goal_pos)
             # self.goals.pop(str(goal_pos))
         elif not self.goal and len(self.goals) > 0:
-            # # Recalculate the costs for each of the robot's goal based on its current position
-            # for goal in self.goals.keys():
-            #     # Convert goal position from key to tuple from string
-            #     goal_tuple = goal.strip("',[]()")
-            #     goal_tuple = goal_tuple.split(", ")
-            #     goal_tuple = tuple([int(coord) for coord in goal_tuple])
-            #     self.goals[goal] = np.sum([self.movement_matrix[step[0], step[1]] for step in self.astar.run(
-            #         self.pos, goal_tuple)])
-
-            # Assign the lowest travel cost goal from the robot's goal queue
-
             if self.model.task_allocation == "Round Robin":
                 # goal_pos = sorted(self.goals)[0]
                 goal_pos = self.goals[0]
@@ -212,6 +201,7 @@ class Robot(Agent):
                         # Get unsampled cells and format as N by M matrix (N observations, M dimensions)
                         # self.model.unsampled_cells = np.where(np.array(self.model.sampled) == -1)
                         self.model.unsampled_cells = np.where(np.array(self.model.sampled) >= -1)
+                        # self.model.unsampled_cells = np.where(np.array(self.model.sampled) >= -1)
                         self.model.unsampled_cells = np.array(list(zip(self.model.unsampled_cells[1],
                                                                        self.model.unsampled_cells[0])))
 
@@ -231,30 +221,36 @@ class Robot(Agent):
                                                               method='complete')
 
                         # Split variance cells array into sub-arrays based on cluster
-                        v_clustered = [{} for cluster in range(1, len(set(self.model.unsampled_clusters)) + 1)]
+                        self.model.v_clustered = [{} for cluster in range(1, len(set(self.model.unsampled_clusters)) + 1)]
                         for cell_ix in range(0, len(self.model.unsampled_cells)):
                             cell = self.model.unsampled_cells[cell_ix]
                             cell_cluster = self.model.unsampled_clusters[cell_ix]
+
                             # print(cell_cluster, "\n")
                             cell_variance = self.model.v[cell[0], cell[1]]
-                            v_clustered[cell_cluster - 1][str(cell)] = cell_variance
+                            self.model.v_clustered[cell_cluster - 1][str(cell)] = cell_variance
 
                         # Set goals as x highest variance cells (candidate goals)
                         # where x is the number of robots
                         self.model.candidate_goals = []
                         # cluster_max_vs = []
-                        print("Number of clusters:", len(v_clustered))
+                        print("Number of clusters:", len(self.model.v_clustered))
                         print("Number of cells:", self.model.width * self.model.height)
 
                         cluster_count = 0
-                        clusters_sampled = []
-                        for cluster in v_clustered:
-                            cluster_count += 1
-                            # cluster_max_v_cell_str = max(cluster, key=cluster.get)
+                        if self.model.verbose:
+                            print("Allocated cluster indices:", self.model.clusters_sampled_ix)
+                        # clusters_sampled = self.model.clusters_sampled_list
+                        # self.model.clusters_sampled_list = []
+
+                        # Clusters which have had tasks allocated within them are eliminated from task generation
+                        for cluster in self.model.v_clustered:
                             cluster_sampled = False
+                            cluster_count += 1
+                            if cluster_count in self.model.clusters_sampled_ix:
+                                continue
                             for cell in cluster.keys():
-                                cell = [re.sub("[^0-9]", "", word) for
-                                                          word in cell.split()]
+                                cell = [re.sub("[^0-9]", "", word) for word in cell.split()]
 
                                 for word in cell:
                                     if not word.isdigit():
@@ -262,12 +258,17 @@ class Robot(Agent):
 
                                 cell = [int(word) for word in cell]
                                 cell = [cell[1], cell[0]]
-                                if self.model.sampled[cell[0], cell[1]] != -1:
+                                if tuple(cell) in self.model.allocated_tasks:
                                     cluster_sampled = True
-                                    clusters_sampled.append(True)
+                                    self.model.clusters_sampled_ix.add(cluster_count)
+                                    break
+                                # if self.model.sampled[cell[0], cell[1]] != -1:
+                                #     cluster_sampled = True
+                                #     clusters_sampled.append(True)
 
+                            if cluster_sampled:
+                                continue
                             if not cluster_sampled:
-                                clusters_sampled.append(False)
                                 cluster_max_v_cell_str = max(cluster, key=cluster.get)
                                 cluster_max_v_cell_str = [re.sub("[^0-9]", "", word) for
                                                           word in cluster_max_v_cell_str.split()]
@@ -277,14 +278,17 @@ class Robot(Agent):
 
                                 cluster_max_v_cell = [int(word) for word in cluster_max_v_cell_str]
                                 cluster_max_v_cell = [cluster_max_v_cell[1], cluster_max_v_cell[0]]
-                                if self.model.verbose:
-                                    print(cluster_max_v_cell)
+                                # if self.model.verbose:
+                                #     print(cluster_max_v_cell)
+                                cluster_sampled = True
+                                self.model.clusters_sampled_ix.add(cluster_count)
                                 self.model.candidate_goals.append(cluster_max_v_cell)
-                        if False not in clusters_sampled and clusters_sampled != []:
-                            self.model.clusters_sampled = True
+                                continue
+                        # if len(self.model.clusters_sampled_ix) == len(self.model.v_clustered):
+                        #     self.model.clusters_sampled = True
 
                         if self.model.verbose:
-                            print("Num. clusters:", len(self.model.candidate_goals))
+                            print("No. of new task goals:", len(self.model.candidate_goals))
 
                     elif self.model.sampling_strategy == "Random":
                         # Set goals as x random unsampled cells (candidate goals)
@@ -294,12 +298,12 @@ class Robot(Agent):
                             pass
                         else:
                             for x in range(len(self.model.robots)):
-                                goal_pos = (random.randrange(0, self.model.width), random.randrange(0, self.model.height))
+                                goal_pos = (random.randrange(0, self.model.width),
+                                            random.randrange(0, self.model.height))
                                 while goal_pos in self.model.allocated_tasks:
-                                    # goal_pos = (random.randrange(0, self.model.width), random.randrange(0, self.model.height))
                                     unallocated_cells = [[x, y] for x in range(self.model.width) for
-                                                              y in range(self.model.height) if
-                                                             [x, y] not in self.model.allocated_tasks]
+                                                         y in range(self.model.height) if
+                                                         [x, y] not in self.model.allocated_tasks]
                                     # print("Unallocated cells:", unallocated_cells)
                                     if unallocated_cells:
                                         goal_pos = random.choice(unallocated_cells)
@@ -413,9 +417,6 @@ class Robot(Agent):
             self.path = self.astar.run(self.pos, self.goal)
             print(self.goals)
 
-        # print("Robot", str(self.unique_id), "current cell:", str(self.pos))
-        # print("Robot", str(self.unique_id), "previous cell:", str(self.trajectory[len(self.trajectory) - 2]))
-        # print("Robot", str(self.unique_id), "trajectory length:", len(self.trajectory), "\n")
         if not self.goal:
             self.idle_time += 1
         elif self.pos == tuple(self.trajectory[len(self.trajectory) - 2]):
@@ -435,7 +436,15 @@ class Robot(Agent):
         self.current_task_completion_time = 0
 
     def queue_sampling(self, goal_pos):
-        if goal_pos not in self.model.allocated_tasks and goal_pos not in self.goals:
+        # Check if goal_pos is in a cluster that has already been allocated for sampling
+        goal_pos_in_allocated_cluster = False
+        for cluster_ix in range(len(self.model.v_clustered)):
+            # print("Cluster", str(cluster_ix), "cells:", self.model.v_clustered[cluster_ix].keys())
+            if str(goal_pos) in list(self.model.v_clustered[cluster_ix].keys()):
+                goal_pos_in_allocated_cluster = True
+                break
+        if goal_pos not in list(self.model.allocated_tasks) and goal_pos not in self.goals and \
+                not goal_pos_in_allocated_cluster:
             if self.model.verbose:
                 print("Robot", self.unique_id, "added task at", goal_pos, " to queue at step", self.model.step_num)
             # # Add goal to queue with value equal to path cost
@@ -461,8 +470,6 @@ class Robot(Agent):
                                 queue_cost += np.sum([self.movement_matrix[step[1], step[0]] for
                                                       step in self.astar.run(prev_goal, candidate_goal_queue[j])])
                             else:
-                                # queue_cost += np.sum([self.movement_matrix[step[0], step[1]] for step in self.astar.run(
-                                #     self.pos, goal_pos)])
                                 queue_cost += np.sum([self.movement_matrix[step[1], step[0]] for step in self.astar.run(
                                     self.pos, goal_pos)])
                         # print(queue_cost)
@@ -476,7 +483,9 @@ class Robot(Agent):
                 # Add goal to queue
                 self.goals.append(goal_pos)
 
-            self.model.allocated_tasks.append(goal_pos)
+            self.model.allocated_tasks.add(tuple(goal_pos))
+            if self.model.verbose:
+                print("Allocated tasks:", self.model.allocated_tasks)
 
 
 # A class to represent a sampled cell as a MESA agent to enable visualisation of the sampled value on the grid
@@ -530,7 +539,6 @@ class SpatialSamplingModel(Model):
         if not os.path.exists(self.vis_data_dir):
             os.makedirs(self.vis_data_dir)
 
-
         plt.imshow(self.gaussian)
         plt.xlabel("Cell X co-ordinate")
         plt.ylabel("Cell Y co-ordinate")
@@ -564,7 +572,7 @@ class SpatialSamplingModel(Model):
         self.robot_waiting_times = {}
         self.task_allocation = task_allocation  # "Round Robin" or "Sequential Single Item (SSI) auction"
         self.sampling_strategy = sampling_strategy  # "Dynamic" or "Random"
-        self.allocated_tasks = []
+        self.allocated_tasks = set()
         self.RR_rob_index = 0
         self.RR_task_index = 0
         self.trial_num = trial_num
@@ -572,6 +580,8 @@ class SpatialSamplingModel(Model):
         self.clusters_sampled = False
         self.verbose = verbose
         self.vis_freq = vis_freq
+        self.v_clustered = []
+        self.clusters_sampled_ix = set()
 
         self.data_collector = DataCollector(model_reporters={"RMSE": "RMSE"})
 
@@ -692,7 +702,8 @@ class SpatialSamplingModel(Model):
                     }
 
                     # Dump agent's trajectory to pickle file
-                    with open(self.vis_data_dir + str(self.step_num) + "_" + "trajectory_" + str(agent.unique_id) + ".pickle", "wb") as f:
+                    with open(self.vis_data_dir + str(self.step_num) + "_" + "trajectory_" + str(agent.unique_id) +
+                              ".pickle", "wb") as f:
                         pickle.dump(trajectory_plot_info, f)
 
                     plt.plot(trajectory_plot_info[agent.unique_id]["x"],
@@ -703,9 +714,6 @@ class SpatialSamplingModel(Model):
                     plt.colorbar()
                     plt.scatter(x=agent.sampled_cells_x, y=agent.sampled_cells_y, marker="o",
                                 c=trajectory_plot_info[agent.unique_id]["c"], zorder=1)
-
-                    # plt.scatter(x=[agent.sampled_cells_x[0]], y=[agent.sampled_cells_y[0]], marker="o",
-                    #             c="red", zorder=10)
 
                     plt.title(
                         "Map of Cells Visited by Robot " + str(agent.unique_id) + " at Step " + str(self.step_num))
@@ -842,54 +850,6 @@ class SpatialSamplingModel(Model):
             print(metrics)
             metrics.to_csv(self.visualisation_dir+str(self.trial_num)+".csv")
 
-            # # Export visited cells as images
-            # self.combined_cells_visited = np.zeros((self.width, self.height))
-            # trajectory_plot_info = {}
-            # for agent in self.schedule.agents:
-            #     if agent.type == 0:  # True if the agent is a robot
-            #         ax = plt.figure("Robot " + str(agent.unique_id) + " visited cells").gca()
-            #         ax.yaxis.get_major_locator().set_params(integer=True)
-            #         ax.xaxis.get_major_locator().set_params(integer=True)
-            #         plt.imshow(np.swapaxes(agent.visited, 0, 1), origin="lower", cmap="gray")
-            #
-            #         trajectory_plot_info[agent.unique_id] = {
-            #             "x": [agent.trajectory[t][0] for t in range(len(agent.trajectory))],
-            #             "y": [agent.trajectory[t][1] for t in range(len(agent.trajectory))],
-            #             "c": agent.color
-            #         }
-            #
-            #         plt.plot(trajectory_plot_info[agent.unique_id]["x"],
-            #                  trajectory_plot_info[agent.unique_id]["y"],
-            #                  c=trajectory_plot_info[agent.unique_id]["c"])
-            #
-            #         plt.colorbar()
-            #         plt.scatter(x=agent.sampled_cells_x, y=agent.sampled_cells_y, marker="o",
-            #                     c=trajectory_plot_info[agent.unique_id]["c"])
-            #         plt.title("Map of Cells Visited by Robot " + str(agent.unique_id)+ " at Step " + str(self.model.step_num))
-            #         plt.savefig(self.visualisation_dir + str(self.step_num)+"_" + str(agent.unique_id) + "_visited_cells.png")
-            #         plt.close()
-            #         self.combined_cells_visited += agent.visited
-            #
-            # ax = plt.figure("Combined visited cells").gca()
-            # ax.yaxis.get_major_locator().set_params(integer=True)
-            # ax.xaxis.get_major_locator().set_params(integer=True)
-            #
-            # plt.imshow(np.swapaxes(self.combined_cells_visited, 0, 1), origin="lower", cmap="gray")
-            # plt.colorbar()
-            # for robot_id in trajectory_plot_info.keys():
-            #     plt.plot(trajectory_plot_info[robot_id]["x"],
-            #              trajectory_plot_info[robot_id]["y"],
-            #              c=trajectory_plot_info[robot_id]["c"])
-            # for agent in self.schedule.agents:
-            #     if agent.type == 0:
-            #         plt.scatter(x=agent.sampled_cells_x, y=agent.sampled_cells_y, marker="o",
-            #                     c=trajectory_plot_info[agent.unique_id]["c"])
-            #
-            #     plt.title("Combined Map of Visited Cells  at Step " + str(self.model.step_num))
-            # plt.legend(["Robot "+str(robot_id) for robot_id in trajectory_plot_info.keys()])
-            # plt.savefig(self.visualisation_dir + str(self.step_num)+"_" + "combined_visited_cells.png")
-            # plt.close()
-
             self.running = False
 
         # Run one step of the model
@@ -897,20 +857,12 @@ class SpatialSamplingModel(Model):
 
     def SSI_TA(self):
         for task in self.candidate_goals:
-            if task not in self.allocated_tasks:
+            if task not in list(self.allocated_tasks):
                 if self.verbose:
                     print("Bidding on task at", task)
                 bids = {}
                 for agent in self.schedule.agents:
                     if agent.type == 0:  # True if the agent is a robot
-                        # try:
-                        #     agent.bid = np.sum([agent.movement_matrix[step[1], step[0]] for step in agent.astar.run(
-                        #         agent.pos, tuple(task))])
-                        #     if self.verbose:
-                        #         print("Robot", str(agent.unique_id), "bid:", str(agent.bid))
-                        #     bids[str(agent.unique_id)] = agent.bid
-                        # except TypeError:
-                        #     pass
                         # Insertion heuristic
                         # (insert task where it least increases the cost of navigating to the queued tasks)
                         best_queue_cost = -1
@@ -928,8 +880,6 @@ class SpatialSamplingModel(Model):
                                                           step in
                                                           agent.astar.run(prev_goal, candidate_goal_queue[j])])
                                 else:
-                                    # queue_cost += np.sum([self.movement_matrix[step[0], step[1]] for step in self.astar.run(
-                                    #     self.pos, goal_pos)])
                                     queue_cost += np.sum(
                                         [agent.movement_matrix[step[1], step[0]] for step in agent.astar.run(
                                             agent.pos, task)])
@@ -939,8 +889,6 @@ class SpatialSamplingModel(Model):
                                 bids[str(agent.unique_id)] = best_queue_cost
                 winning_agent = min(bids, key=bids.get)
                 # print("Winning agent:", winning_agent)
-
-                # self.allocated_tasks.append(task)
 
                 for agent in self.schedule.agents:
                     if agent.type == 0:  # True if the agent is a robot
