@@ -244,6 +244,12 @@ class Robot(Agent):
                         # self.model.clusters_sampled_list = []
 
                         # Clusters which have had tasks allocated within them are eliminated from task generation
+                        # This works for now, but can be more efficient by just iterating through clusters and
+                        # allocating only the highest variance cell in each. Is this informative planning anymore? All
+                        # tasks are generated from the 1st round of kriging interpolation now. We should limit the
+                        # number of goals generated from a round of interpolation, e.g. to the number of robots, perhaps
+                        # allocating a task in each cluster that is closest to a robot and not eliminated from task
+                        # generation.
                         for cluster in self.model.v_clustered:
                             cluster_sampled = False
                             cluster_count += 1
@@ -514,7 +520,7 @@ class UnsampledCell(SampledCell):
 
 class SpatialSamplingModel(Model):
     def __init__(self, height=20, width=20, num_robots=2, task_allocation="Sequential Single Item (SSI) auction",
-                 trial_num=1, max_steps=100,
+                 trial_num=8, max_steps=100,
                  sampling_strategy="Dynamic",
                  results_dir="./results/3robs_20x20_grid_sampling_all_cells/",
                  verbose=True, vis_freq=1):
