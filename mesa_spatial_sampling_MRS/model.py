@@ -65,29 +65,15 @@ class Robot(Agent):
         if not self.goal and len(self.goals) == 1:
             goal_pos = self.goals[0]
             self.goals.remove(goal_pos)
-            # print(type(goal_pos))
-            # goal_pos = goal_pos.strip("',[]()")
-            # goal_pos = goal_pos.split(", ")
-            # goal_pos = tuple([int(coord) for coord in goal_pos])
-            # # print(goal_pos)
             self.sample_pos(goal_pos)
-            self.model.allocated_tasks.add(goal_pos)
-            # self.goals.pop(str(goal_pos))
+            self.model.allocated_tasks.add(tuple(goal_pos))
         elif not self.goal and len(self.goals) > 0:
             if self.model.task_allocation == "Round Robin":
-                # goal_pos = sorted(self.goals)[0]
                 goal_pos = self.goals[0]
             else:
-                # goal_pos = sorted(self.goals)[0]
                 goal_pos = self.goals[0]
             self.goals.remove(goal_pos)
-            # goal_pos = goal_pos.strip("',[]()")
-            # goal_pos = goal_pos.split(", ")
-            # goal_pos = tuple([int(coord) for coord in goal_pos])
-            # print(goal_pos)
             self.sample_pos(goal_pos)
-            # self.goals.pop(str(goal_pos))
-            # self.sample_pos(tuple(goal_pos))
 
         if self.path is not None:
             # If the robot has reached the end of its path, and thus its goal, sample a value from the underlying
@@ -230,8 +216,6 @@ class Robot(Agent):
                             cell_variance = self.model.v[cell[0], cell[1]]
                             self.model.v_clustered[cell_cluster - 1][str(cell)] = cell_variance
 
-                        # Set goals as x highest variance cells (candidate goals)
-                        # where x is the number of robots
                         self.model.candidate_goals = []
                         # cluster_max_vs = []
                         print("Number of clusters:", len(self.model.v_clustered))
@@ -246,18 +230,59 @@ class Robot(Agent):
                         # Clusters which have had tasks allocated within them are eliminated from task generation
                         # This works for now, but can be more efficient by just iterating through clusters and
                         # allocating only the highest variance cell in each. Is this informative planning anymore? All
-                        # tasks are generated from the 1st round of kriging interpolation now. We should limit the
-                        # number of goals generated from a round of interpolation, e.g. to the number of robots, perhaps
-                        # allocating a task in each cluster that is closest to a robot and not eliminated from task
-                        # generation.
+                        # tasks are generated from the 1st round of kriging interpolation now.
+                        #
+                        # We should limit the number of goals generated from a round of interpolation, e.g. to 2x the
+                        # number of robots, perhaps creating a task in the x clusters with the highest mean kriging
+                        # variance, excluding clusters which have had a task allocated
+
+                        # Get mean kriging variance for each cluster
+                        cluster_count = 0
+                        cluster_mean_variances = {}
+                        for cluster in self.model.v_clustered:
+                            cluster_count += 1
+                            cluster_size = len(cluster)
+                            cluster_total_variance = 0
+                            for cell in cluster.keys():
+                                cluster_total_variance += cluster[cell]
+
+                            cluster_mean_variance = cluster_total_variance / cluster_size
+                            if self.model.verbose:
+                                print("Mean kriging variance in cluster", cluster_count, ":", cluster_mean_variance)
+                            cluster_mean_variances[cluster_count] = cluster_mean_variance
+
+                        # Sort clusters by mean kriging variance
+                        cluster_ids_by_variance = sorted(cluster_mean_variances, key=cluster_mean_variances.get,
+                                                         reverse=True)
+
+                        # Print cluster IDs sorted by mean variance, and their mean variance values
+                        if self.model.verbose:
+                            print("Cluster IDs sorted by kriging variance (highest first):")
+                            for cluster_id in cluster_ids_by_variance:
+                                print(cluster_id, cluster_mean_variances[cluster_id])
+
+                        # Filter out IDs of clusters which have had a task allocated within them
+                        cluster_ids_by_variance = [cluster_id for cluster_id in cluster_ids_by_variance if cluster_id
+                                                   not in self.model.clusters_sampled_ix]
+                        print("Cluster IDs by variance, excluding already allocated clusters:", cluster_ids_by_variance)
+                        print("Number of clusters excluding allocated clusters:", len(cluster_ids_by_variance))
+                        clusters_for_task_generation = cluster_ids_by_variance[:2*len(self.model.robots)]
+                        print("Clusters for task generation:", clusters_for_task_generation)
+
+                        cluster_count = 0
                         for cluster in self.model.v_clustered:
                             cluster_sampled = False
                             cluster_count += 1
-                            if cluster_count in self.model.clusters_sampled_ix:
+                            if cluster_count in self.model.clusters_sampled_ix or \
+                                    cluster_count not in clusters_for_task_generation:
                                 continue
+
+                            cluster_total_variance = 0
+                            for cell in cluster.keys():
+                                cluster_total_variance += cluster[cell]
+
                             for cell in cluster.keys():
                                 cell = [re.sub("[^0-9]", "", word) for word in cell.split()]
-
                                 for word in cell:
                                     if not word.isdigit():
                                         cell.remove(word)
@@ -520,7 +545,7 @@ class UnsampledCell(SampledCell):
 
 class SpatialSamplingModel(Model):
     def __init__(self, height=20, width=20, num_robots=2, task_allocation="Sequential Single Item (SSI) auction",
-                 trial_num=8, max_steps=100,
+                 trial_num=9, max_steps=100,
                  sampling_strategy="Dynamic",
                  results_dir="./results/3robs_20x20_grid_sampling_all_cells/",
                  verbose=True, vis_freq=1):
