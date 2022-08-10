@@ -17,15 +17,13 @@ from mesa.datacollection import DataCollector
 import numpy as np
 import matplotlib.pyplot as plt
 from astar_python import Astar
-# from gaussian import makeGaussian
 from kriging_utils.kriging import predict_by_kriging
-from kriging_utils.kriging_cv import kriging_param_cv
 from scipy.cluster.hierarchy import fclusterdata
 
 
 class Robot(Agent):
     def __init__(self, pos, model):
-        # Inherits position and model attributes from Agent superclass
+        # Inherits position and model attributes from Mesa's Agent superclass
         super().__init__(pos, model)
         self.pos = pos
         # The robot is assigned a randomly generated colour for visualisation
@@ -47,7 +45,6 @@ class Robot(Agent):
         self.previous_cell = None
         self.deadlocked = False
         self.distance_travelled = 0
-        # self.visited = np.zeros((self.model.width, self.model.height))
         self.visited = np.zeros((self.model.width, self.model.height))
         self.visited[self.pos[0], self.pos[1]] += 1
         self.trajectory = [self.pos]
@@ -126,35 +123,19 @@ class Robot(Agent):
                     y_arr = []
                     o_arr = []
                     for sampled_cell in sampled_cells:
-                        # print(sampled_cell)
-                        # x_arr.append(sampled_cell[0])
-                        # y_arr.append(sampled_cell[1])
                         x_arr.append(sampled_cell[1])
                         y_arr.append(sampled_cell[0])
-                        # val = self.model.sampled[sampled_cell[1], sampled_cell[0]]
                         val = self.model.sampled[sampled_cell[1], sampled_cell[0]]
-                        # print(val, "\n")
                         o_arr.append(val)
 
-                    # print(x_arr)
-                    # print(y_arr)
-                    # print(o_arr)
-
-                    # if self.model.num_samples == 10:
+                    # After a set number of samples, cross-validation of interpolation is performed to determine the
+                    # best variogram model
                     if self.model.num_samples == 20:
-                        # print(kriging_param_cv(sampled_cells, o_arr))
                         variogram_models = ["linear", "power", "gaussian", "spherical"]
                         model_scores = []
 
                         for variogram_model in variogram_models:
                             m, v = predict_by_kriging(xgrid, ygrid, x_arr, y_arr, o_arr, variogram=variogram_model)
-
-                            # m = np.flipud(m)
-                            # m = np.fliplr(m)
-
-                            # v = np.swapaxes(v, 0, 1)
-                            # v = np.fliplr(v)
-                            # v = np.flipud(v)
 
                             model_score = np.sqrt(np.mean(np.power(np.array(self.model.gaussian) - m,
                                                                    2)))
@@ -170,33 +151,17 @@ class Robot(Agent):
                     self.model.m, self.model.v = predict_by_kriging(xgrid, ygrid, x_arr, y_arr, o_arr,
                                                                     variogram=self.model.variogram)
 
-                    # self.model.m = np.flipud(self.model.m)
-                    # self.model.m = np.fliplr(self.model.m)
-
-                    # self.model.v = np.flipud(self.model.v)
-                    # self.model.v = np.fliplr(self.model.v)
-                    # self.model.v = np.swapaxes(self.model.v, 0, 1)
-
                     self.model.RMSE = np.sqrt(np.mean(np.power(np.array(self.model.gaussian) - self.model.m, 2)))
                     self.model.avg_variance = np.mean(self.model.v)
-                    # print("RMSE:", self.model.RMSE)
 
                     if self.model.sampling_strategy == "Dynamic":
 
                         # Cluster unsampled cells
                         # Get unsampled cells and format as N by M matrix (N observations, M dimensions)
-                        # self.model.unsampled_cells = np.where(np.array(self.model.sampled) == -1)
                         self.model.unsampled_cells = np.where(np.array(self.model.sampled) >= -1)
                         # self.model.unsampled_cells = np.where(np.array(self.model.sampled) >= -1)
                         self.model.unsampled_cells = np.array(list(zip(self.model.unsampled_cells[1],
                                                                        self.model.unsampled_cells[0])))
-
-                        # self.model.unsampled_clusters = fclusterdata(self.model.unsampled_cells,
-                        #                                   t=self.model.width / (len(self.model.robots) / 3),
-                        #                                   criterion='distance',
-                        #                                   metric='euclidean',
-                        #                                   depth=1,
-                        #                                   method='complete')
 
                         if self.model.step_num == 1:
                             self.model.unsampled_clusters = fclusterdata(self.model.unsampled_cells,
@@ -212,29 +177,20 @@ class Robot(Agent):
                             cell = self.model.unsampled_cells[cell_ix]
                             cell_cluster = self.model.unsampled_clusters[cell_ix]
 
-                            # print(cell_cluster, "\n")
                             cell_variance = self.model.v[cell[0], cell[1]]
                             self.model.v_clustered[cell_cluster - 1][str(cell)] = cell_variance
 
                         self.model.candidate_goals = []
-                        # cluster_max_vs = []
                         print("Number of clusters:", len(self.model.v_clustered))
                         print("Number of cells:", self.model.width * self.model.height)
 
-                        cluster_count = 0
                         if self.model.verbose:
                             print("Allocated cluster indices:", self.model.clusters_sampled_ix)
-                        # clusters_sampled = self.model.clusters_sampled_list
-                        # self.model.clusters_sampled_list = []
 
-                        # Clusters which have had tasks allocated within them are eliminated from task generation
-                        # This works for now, but can be more efficient by just iterating through clusters and
-                        # allocating only the highest variance cell in each. Is this informative planning anymore? All
-                        # tasks are generated from the 1st round of kriging interpolation now.
-                        #
-                        # We should limit the number of goals generated from a round of interpolation, e.g. to 2x the
-                        # number of robots, perhaps creating a task in the x clusters with the highest mean kriging
-                        # variance, excluding clusters which have had a task allocated
+                        # Clusters which have had tasks allocated within them are eliminated from task generation.
+                        # The number of goals generated from each round of interpolation is limited to 2 times the
+                        # number of robots, creating a task in the x clusters with the highest mean kriging
+                        # variance, where x is 2 times the number of robots.
 
                         # Get mean kriging variance for each cluster
                         cluster_count = 0
@@ -293,9 +249,6 @@ class Robot(Agent):
                                     cluster_sampled = True
                                     self.model.clusters_sampled_ix.add(cluster_count)
                                     break
-                                # if self.model.sampled[cell[0], cell[1]] != -1:
-                                #     cluster_sampled = True
-                                #     clusters_sampled.append(True)
 
                             if cluster_sampled:
                                 continue
@@ -309,14 +262,10 @@ class Robot(Agent):
 
                                 cluster_max_v_cell = [int(word) for word in cluster_max_v_cell_str]
                                 cluster_max_v_cell = [cluster_max_v_cell[1], cluster_max_v_cell[0]]
-                                # if self.model.verbose:
-                                #     print(cluster_max_v_cell)
                                 cluster_sampled = True
                                 self.model.clusters_sampled_ix.add(cluster_count)
                                 self.model.candidate_goals.append(cluster_max_v_cell)
                                 continue
-                        # if len(self.model.clusters_sampled_ix) == len(self.model.v_clustered):
-                        #     self.model.clusters_sampled = True
 
                         if self.model.verbose:
                             print("No. of new task goals:", len(self.model.candidate_goals))
@@ -470,7 +419,6 @@ class Robot(Agent):
         # Check if goal_pos is in a cluster that has already been allocated for sampling
         goal_pos_in_allocated_cluster = False
         for cluster_ix in range(len(self.model.v_clustered)):
-            # print("Cluster", str(cluster_ix), "cells:", self.model.v_clustered[cluster_ix].keys())
             if str(goal_pos) in list(self.model.v_clustered[cluster_ix].keys()):
                 goal_pos_in_allocated_cluster = True
                 break
@@ -479,8 +427,6 @@ class Robot(Agent):
             if self.model.verbose:
                 print("Robot", self.unique_id, "added task at", goal_pos, " to queue at step", self.model.step_num)
             # # Add goal to queue with value equal to path cost
-            # self.goals[str(goal_pos)] = np.sum([self.movement_matrix[step[0], step[1]] for step in self.astar.run(
-            #                     self.pos, goal_pos)])
 
             if len(self.goals) > 0:
                 # Insertion heuristic
@@ -496,14 +442,11 @@ class Robot(Agent):
                         for j in range(len(candidate_goal_queue)):
                             if j > 0:
                                 prev_goal = candidate_goal_queue[j-1]
-                                # queue_cost += np.sum([self.movement_matrix[step[0], step[1]] for
-                                #                       step in self.astar.run(prev_goal, candidate_goal_queue[j])])
                                 queue_cost += np.sum([self.movement_matrix[step[1], step[0]] for
                                                       step in self.astar.run(prev_goal, candidate_goal_queue[j])])
                             else:
                                 queue_cost += np.sum([self.movement_matrix[step[1], step[0]] for step in self.astar.run(
                                     self.pos, goal_pos)])
-                        # print(queue_cost)
                         if best_queue_cost == -1 or best_queue_cost > queue_cost:
                             best_queue_cost = queue_cost
                             best_queue = candidate_goal_queue
@@ -526,7 +469,6 @@ class SampledCell(Agent):
         self.pos = pos
         self.value = value
         # Normalise value to 0-1 range for grayscale representation of value
-        # print(type(self.model))
         self.color = "#%02x%02x%02x" % (int(value * 255), int(value * 255), int(value * 255))
         if isinstance(self.model, SpatialSamplingModel):
             val_normalised = (self.value - self.model.min_sample_value) /\
@@ -578,11 +520,8 @@ class SpatialSamplingModel(Model):
         plt.colorbar()
         plt.savefig("ground_truth_distribution.png", dpi=300)
         plt.close()
-        # self.gaussian = np.swapaxes(self.gaussian, 0, 1)
-        # self.gaussian = self.gaussian.swapaxes(0, 1)
         self.min_sample_value = np.min(self.gaussian)
         self.max_sample_value = np.max(self.gaussian)
-        # self.gaussian = self.gaussian / self.max_sample_value
 
         self.width = width
         self.height = height
@@ -833,8 +772,6 @@ class SpatialSamplingModel(Model):
 
         if self.sampling_strategy == "Dynamic":
             if len(self.unsampled_cells) > 0 and len(self.unsampled_clusters) > 0:
-                # print("Unsampled cells:", self.unsampled_cells)
-                # print("Unsampled cell clusters:", self.unsampled_clusters)
                 if self.step_num == 2:
                     # Plot clusters of unsampled cells
                     plt.scatter(self.unsampled_cells[:, 1], self.unsampled_cells[:, 0],
@@ -905,8 +842,6 @@ class SpatialSamplingModel(Model):
                             for j in range(len(candidate_goal_queue)):
                                 if j > 0:
                                     prev_goal = candidate_goal_queue[j - 1]
-                                    # queue_cost += np.sum([self.movement_matrix[step[0], step[1]] for
-                                    #                       step in self.astar.run(prev_goal, candidate_goal_queue[j])])
                                     queue_cost += np.sum([agent.movement_matrix[step[1], step[0]] for
                                                           step in
                                                           agent.astar.run(prev_goal, candidate_goal_queue[j])])
@@ -914,19 +849,16 @@ class SpatialSamplingModel(Model):
                                     queue_cost += np.sum(
                                         [agent.movement_matrix[step[1], step[0]] for step in agent.astar.run(
                                             agent.pos, task)])
-                            # print(queue_cost)
                             if best_queue_cost == -1 or best_queue_cost > queue_cost:
                                 best_queue_cost = queue_cost
                                 bids[str(agent.unique_id)] = best_queue_cost
                 winning_agent = min(bids, key=bids.get)
-                # print("Winning agent:", winning_agent)
 
                 for agent in self.schedule.agents:
                     if agent.type == 0:  # True if the agent is a robot
                         if str(agent.unique_id) == winning_agent:
                             if self.verbose:
                                 print("Winning agent:", str(agent.unique_id))
-                            # agent.sample_pos(goal_pos)
                             agent.queue_sampling(task)
 
     def RR_TA(self):

@@ -59,7 +59,7 @@ model_params = {
     "height": height,
     "width": width,
     "num_robots": num_robots_slider,
-    "vis_freq": 240,
+    "vis_freq": 5,
     "task_allocation": task_allocation_choice,
     "sampling_strategy": sampling_choice
 }

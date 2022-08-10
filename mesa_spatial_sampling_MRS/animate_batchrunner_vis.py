@@ -34,4 +34,10 @@ def animate_batch(batch_path, num_trials):
 
 
 if __name__ == '__main__':
-    animate_batch("results/SSI_RS_3robs_20x20/", 1)
+    animate_batch("results/RR_DS_3robs_20x20/", 10)
+
+    animate_batch("results/RR_RS_3robs_20x20/", 10)
+
+    animate_batch("results/SSI_DS_3robs_20x20/", 10)
+
+    animate_batch("results/SSI_RS_3robs_20x20/", 10)

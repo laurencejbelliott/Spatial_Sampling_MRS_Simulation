@@ -1,33 +1,81 @@
 __author__ = "Laurence Roberts-Elliott"
 import pandas as pd
 
-# Calculate summary statistics for random sampling trials
-RS_df = pd.read_csv("results/random_sampling_3robs_20x20/results.csv")
+# Calculate summary statistics for RR DS trials
+df = pd.read_csv("results/RR_DS_3robs_20x20/results.csv")
 
-RS_df_mean = RS_df.mean()
-print("Mean of Random Sampling metrics:\n", RS_df_mean)
-RS_df_mean.to_csv("results/random_sampling_3robs_20x20/mean.csv")
+df_mean = df.mean()
+print("Mean of RR DS metrics:\n", df_mean)
+df_mean.to_csv("results/RR_DS_3robs_20x20/mean.csv")
 
-RS_df_med = RS_df.median()
-print("Median of Random Sampling metrics:\n", RS_df_med)
-RS_df_med.to_csv("results/random_sampling_3robs_20x20/median.csv")
+df_med = df.median()
+print("Median of RR DS metrics:\n", df_med)
+df_med.to_csv("results/RR_DS_3robs_20x20/median.csv")
 
-RS_df_std = RS_df.std()
-print("STD of Random Sampling metrics:\n", RS_df_std)
-RS_df_std.to_csv("results/random_sampling_3robs_20x20/std.csv")
+df_std = df.std()
+print("STD of RR DS metrics:\n", df_std)
+df_std.to_csv("results/RR_DS_3robs_20x20/std.csv")
+
+df_max = df.max()
+print("Max of RR DS metrics:\n", df_max)
+df_max.to_csv("results/RR_DS_3robs_20x20/max.csv")
 
 
-# Calculate summary statistics for Round Robin trials
-RR_df = pd.read_csv("results/RRTA_3robs_20x20/results.csv")
+# Calculate summary statistics for RR RS trials
+df = pd.read_csv("results/RR_RS_3robs_20x20/results.csv")
 
-RR_df_mean = RR_df.mean()
-print("Mean of Round Robin metrics:\n", RR_df_mean)
-RR_df_mean.to_csv("results/RRTA_3robs_20x20/mean.csv")
+df_mean = df.mean()
+print("Mean of RR RS metrics:\n", df_mean)
+df_mean.to_csv("results/RR_RS_3robs_20x20/mean.csv")
 
-RR_df_med = RR_df.median()
-print("Median of Round Robin metrics:\n", RR_df_med)
-RR_df_med.to_csv("results/RRTA_3robs_20x20/median.csv")
+df_med = df.median()
+print("Median of RR RS metrics:\n", df_med)
+df_med.to_csv("results/RR_RS_3robs_20x20/median.csv")
 
-RR_df_std = RR_df.std()
-print("STD of Round Robin metrics:\n", RR_df_std)
-RR_df_std.to_csv("results/RRTA_3robs_20x20/std.csv")
+df_std = df.std()
+print("STD of RR RS metrics:\n", df_std)
+df_std.to_csv("results/RR_RS_3robs_20x20/std.csv")
+
+df_max = df.max()
+print("Max of RR RS metrics:\n", df_max)
+df_max.to_csv("results/RR_RS_3robs_20x20/max.csv")
+
+
+# Calculate summary statistics for SSI DS trials
+df = pd.read_csv("results/SSI_DS_3robs_20x20/results.csv")
+
+df_mean = df.mean()
+print("Mean of SSI DS metrics:\n", df_mean)
+df_mean.to_csv("results/SSI_DS_3robs_20x20/mean.csv")
+
+df_med = df.median()
+print("Median of SSI DS metrics:\n", df_med)
+df_med.to_csv("results/SSI_DS_3robs_20x20/median.csv")
+
+df_std = df.std()
+print("STD of SSI DS metrics:\n", df_std)
+df_std.to_csv("results/SSI_DS_3robs_20x20/std.csv")
+
+df_max = df.max()
+print("Max of SSI DS metrics:\n", df_max)
+df_max.to_csv("results/SSI_DS_3robs_20x20/max.csv")
+
+# Calculate summary statistics for SSI RS trials
+df = pd.read_csv("results/SSI_RS_3robs_20x20/results.csv")
+
+df_mean = df.mean()
+print("Mean of SSI RS metrics:\n", df_mean)
+df_mean.to_csv("results/SSI_RS_3robs_20x20/mean.csv")
+
+df_med = df.median()
+print("Median of SSI RS metrics:\n", df_med)
+df_med.to_csv("results/SSI_RS_3robs_20x20/median.csv")
+
+df_std = df.std()
+print("STD of SSI RS metrics:\n", df_std)
+df_std.to_csv("results/SSI_RS_3robs_20x20/std.csv")
+
+df_max = df.max()
+print("Max of SSI RS metrics:\n", df_max)
+df_max.to_csv("results/SSI_RS_3robs_20x20/max.csv")
+

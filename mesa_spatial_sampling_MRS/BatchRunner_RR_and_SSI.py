@@ -12,10 +12,10 @@ def main():
                                     "task_allocation": "Sequential Single Item (SSI) auction", "num_robots": 3,
                                     "sampling_strategy": "Random",
                                     "results_dir": results_dir,
-                                    "vis_freq": 1
+                                    "vis_freq": 5
                                 },
                                 variable_parameters={
-                                    "trial_num": range(1, 2, 1)},
+                                    "trial_num": range(1, 11, 1)},
                                 # Define number of iterations for output in correct dirs
                                 iterations=1,
                                 max_steps=99999,
@@ -46,9 +46,9 @@ def main():
                                     "task_allocation": "Sequential Single Item (SSI) auction", "num_robots": 3,
                                     "sampling_strategy": "Dynamic",
                                     "results_dir": results_dir,
-                                    "vis_freq": 1},
+                                    "vis_freq": 5},
                                 variable_parameters={
-                                    "trial_num": range(1, 2, 1)},  # Define number of iterations for output in correct dirs
+                                    "trial_num": range(1, 11, 1)},  # Define number of iterations for output in correct dirs
                                 iterations=1,
                                 max_steps=99999,
                                 model_reporters={"Step number": SpatialSamplingModel.getStepNum,
@@ -79,9 +79,9 @@ def main():
                                     "task_allocation": "Round Robin", "num_robots": 3,
                                     "sampling_strategy": "Random",
                                     "results_dir": results_dir,
-                                    "vis_freq": 1},
+                                    "vis_freq": 5},
                                 variable_parameters={
-                                    "trial_num": range(1, 2, 1)},  # Define number of iterations for output in correct dirs
+                                    "trial_num": range(1, 11, 1)},  # Define number of iterations for output in correct dirs
                                 iterations=1,
                                 max_steps=99999,
                                 model_reporters={"Step number": SpatialSamplingModel.getStepNum,
@@ -112,9 +112,9 @@ def main():
                                     "task_allocation": "Round Robin", "num_robots": 3,
                                     "sampling_strategy": "Dynamic",
                                     "results_dir": results_dir,
-                                    "vis_freq": 1},
+                                    "vis_freq": 5},
                                 variable_parameters={
-                                    "trial_num": range(1, 2, 1)},  # Define number of iterations for output in correct dirs
+                                    "trial_num": range(1, 11, 1)},  # Define number of iterations for output in correct dirs
                                 iterations=1,
                                 max_steps=99999,
                                 model_reporters={"Step number": SpatialSamplingModel.getStepNum,
