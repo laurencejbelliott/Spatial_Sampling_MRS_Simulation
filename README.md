@@ -18,4 +18,4 @@ It should resemble this screenshot:
 
 ![A screenshot of the 2D grid visualisation of the multi-robot spatial sampling simulation.](./docs/images/spatial_MRS_sim_vis.png "A screenshot of the 2D grid visualisation of the spatial sampling MRS simulation.")
 
-Instructions on using this grid visualisation can be found in the [Grid Visualization section of MESA's advanced tutorial](https://mesa.readthedocs.io/en/latest/tutorials/adv_tutorial.html#grid-visualization). 
+Instructions on using this grid visualisation can be found in the [Grid Visualisation section of MESA's advanced tutorial](https://mesa.readthedocs.io/en/latest/tutorials/adv_tutorial.html#grid-visualization). 
