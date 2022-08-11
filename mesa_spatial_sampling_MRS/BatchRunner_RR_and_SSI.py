@@ -8,15 +8,14 @@ def main():
     results_dir = "./results/SSI_RS_3robs_20x20/"
     BatchRunner = BatchRunnerMP(SpatialSamplingModel,
                                 fixed_parameters={
-                                    "width": 162, "height": 110,
+                                    "width": 162, "height": 110,  # Dimensions of the interpolated soil compaction data
                                     "task_allocation": "Sequential Single Item (SSI) auction", "num_robots": 3,
                                     "sampling_strategy": "Random",
                                     "results_dir": results_dir,
                                     "vis_freq": 5
                                 },
                                 variable_parameters={
-                                    "trial_num": range(1, 11, 1)},
-                                # Define number of iterations for output in correct dirs
+                                    "trial_num": range(1, 11, 1)},  # Iterate trial num. for seed & visual outputs
                                 iterations=1,
                                 max_steps=99999,
                                 model_reporters={"Step number": SpatialSamplingModel.getStepNum,
@@ -38,7 +37,6 @@ def main():
     print(BatchData)
     BatchData.to_csv(results_dir + "results.csv")
 
-    # Automated batch of trials for Round Robin wih random sampling, 3 robots, , Jaime's soil compaction data at 0cm depth
     results_dir = "./results/SSI_DS_3robs_20x20/"
     BatchRunner = BatchRunnerMP(SpatialSamplingModel,
                                 fixed_parameters={
@@ -48,7 +46,7 @@ def main():
                                     "results_dir": results_dir,
                                     "vis_freq": 5},
                                 variable_parameters={
-                                    "trial_num": range(1, 11, 1)},  # Define number of iterations for output in correct dirs
+                                    "trial_num": range(1, 11, 1)},
                                 iterations=1,
                                 max_steps=99999,
                                 model_reporters={"Step number": SpatialSamplingModel.getStepNum,
@@ -70,8 +68,6 @@ def main():
     print(BatchData)
     BatchData.to_csv(results_dir+"results.csv")
 
-
-    # Automated batch of trials for Round Robin wih random sampling, 3 robots, , Jaime's soil compaction data at 0cm depth
     results_dir = "./results/RR_RS_3robs_20x20/"
     BatchRunner = BatchRunnerMP(SpatialSamplingModel,
                                 fixed_parameters={
@@ -81,7 +77,7 @@ def main():
                                     "results_dir": results_dir,
                                     "vis_freq": 5},
                                 variable_parameters={
-                                    "trial_num": range(1, 11, 1)},  # Define number of iterations for output in correct dirs
+                                    "trial_num": range(1, 11, 1)},
                                 iterations=1,
                                 max_steps=99999,
                                 model_reporters={"Step number": SpatialSamplingModel.getStepNum,
@@ -103,8 +99,6 @@ def main():
     print(BatchData)
     BatchData.to_csv(results_dir+"results.csv")
 
-
-    # Automated batch of trials for Round Robin wih dynamic sampling, 3 robots, , Jaime's soil compaction data at 0cm depth
     results_dir = "./results/RR_DS_3robs_20x20/"
     BatchRunner = BatchRunnerMP(SpatialSamplingModel,
                                 fixed_parameters={
@@ -114,7 +108,7 @@ def main():
                                     "results_dir": results_dir,
                                     "vis_freq": 5},
                                 variable_parameters={
-                                    "trial_num": range(1, 11, 1)},  # Define number of iterations for output in correct dirs
+                                    "trial_num": range(1, 11, 1)},
                                 iterations=1,
                                 max_steps=99999,
                                 model_reporters={"Step number": SpatialSamplingModel.getStepNum,
