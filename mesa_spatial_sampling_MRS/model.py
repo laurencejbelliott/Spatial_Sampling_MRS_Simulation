@@ -45,6 +45,7 @@ class Robot(Agent):
         self.previous_cell = None
         self.deadlocked = False
         self.distance_travelled = 0
+        # Increase visits to cell at the robot's initial position by 1
         self.visited = np.zeros((self.model.width, self.model.height))
         self.visited[self.pos[0], self.pos[1]] += 1
         self.trajectory = [self.pos]
@@ -58,25 +59,20 @@ class Robot(Agent):
     # Each robot will execute this method at the start of a new time step in the simulation
     def step(self):
         self.deadlocked = False
-        # If the robot has no goal, and only 1 goal in its queue, assign that goal
+        # If the robot has no goal, and only 1 goal in its queue, assign that as its current goal
         if not self.goal and len(self.goals) == 1:
             goal_pos = self.goals[0]
             self.goals.remove(goal_pos)
             self.sample_pos(goal_pos)
             self.model.allocated_tasks.add(tuple(goal_pos))
         elif not self.goal and len(self.goals) > 0:
-            if self.model.task_allocation == "Round Robin":
-                goal_pos = self.goals[0]
-            else:
-                goal_pos = self.goals[0]
+            goal_pos = self.goals[0]
             self.goals.remove(goal_pos)
             self.sample_pos(goal_pos)
 
+        # If the robot has a path to its goal
         if self.path is not None:
-            # If the robot has reached the end of its path, and thus its goal, sample a value from the underlying
-            # distribution
-
-            # If the robot has reached its current goal position
+            # If the robot has reached its current goal position, sample a value at the goal position
             if list(self.pos) == list(self.goal):
                 if len(self.path) == 1:
                     self.path_step = 0
@@ -108,7 +104,7 @@ class Robot(Agent):
                 self.sampled_cells_y.append(self.pos[1])
 
                 # Perform kriging interpolation from sampled values
-                # Define parameters (Explanations are in kriging.py)
+                # Define parameters (Explanations of these are in kriging_utils/kriging.py)
                 xgrid = np.arange(0, self.model.width, 1)
                 ygrid = np.arange(0, self.model.height, 1)
 

@@ -4,7 +4,7 @@ from pykrige.ok import OrdinaryKriging
 
 def predict_by_kriging(gridx, gridy, x_arr, y_arr, o_arr, variogram='spherical'):
     """
-    Predict values at unsamples locations based on observations from other locations.
+    Predict values at unsampled locations based on observations from other locations.
     Use Ordinary Kriging with a particular variogram implemented in PyKrige. 
     Note that at least three observations are recommended as input because otherwise the 
     OrdinaryKriging function generates some errors.
