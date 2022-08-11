@@ -483,9 +483,9 @@ class UnsampledCell(SampledCell):
 
 class SpatialSamplingModel(Model):
     def __init__(self, height=20, width=20, num_robots=2, task_allocation="Sequential Single Item (SSI) auction",
-                 trial_num=9, max_steps=100,
+                 trial_num=1, max_steps=100,
                  sampling_strategy="Dynamic",
-                 results_dir="./results/3robs_20x20_grid_sampling_all_cells/",
+                 results_dir="./results/default/",
                  verbose=True, vis_freq=1):
         super(SpatialSamplingModel, self).__init__(seed=trial_num)
         self.random.seed(trial_num)
