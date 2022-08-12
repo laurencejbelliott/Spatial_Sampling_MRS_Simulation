@@ -657,7 +657,7 @@ class SpatialSamplingModel(Model):
                     ax = plt.figure("Robot " + str(agent.unique_id) + " visited cells").gca()
                     ax.yaxis.get_major_locator().set_params(integer=True)
                     ax.xaxis.get_major_locator().set_params(integer=True)
-                    plt.imshow(agent.visited, origin="lower", cmap="gray")
+                    plt.imshow(np.swapaxes(agent.visited, 0, 1), origin="lower", cmap="gray")
                     plt.xlabel("Cell X co-ordinate")
                     plt.ylabel("Cell Y co-ordinate")
 
