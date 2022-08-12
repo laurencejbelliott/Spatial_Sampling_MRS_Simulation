@@ -744,7 +744,7 @@ class SpatialSamplingModel(Model):
             plt.xlabel("Cell X co-ordinate")
             plt.ylabel("Cell Y co-ordinate")
             plt.colorbar()
-            plt.savefig(self.visualisation_dir + str(self.step_num) + "_" + 'Mean.png',
+            plt.savefig(self.visualisation_dir + str(self.step_num) + "_" + 'Interpolation',
                         dpi=300)
             plt.close()
 
@@ -776,8 +776,7 @@ class SpatialSamplingModel(Model):
                     plt.ylabel("Cell Y co-ordinate")
                     # plt.title("Unsampled Cells Clustered by Distance at Step " + str(self.step_num))
                     plt.title("Cells Clustered by Distance")
-                    plt.savefig(self.visualisation_dir + str(self.step_num) + "_" +
-                                "unsampled_cell_clusters.png", dpi=300)
+                    plt.savefig("cell_clusters.png", dpi=300)
                     plt.close()
 
                     # Dump unsampled cells to pickle file
@@ -787,13 +786,6 @@ class SpatialSamplingModel(Model):
                     # Dump unsampled cell clusters to pickle file
                     with open(self.vis_data_dir + str(self.step_num) + "_" + "unsampled_cell_clusters.pickle", "wb") as f:
                         pickle.dump(self.unsampled_clusters, f)
-
-            else:
-                plt.figure()
-                plt.title("Unsampled Cells Clustered by Distance  at Step " + str(self.step_num))
-                plt.savefig(self.visualisation_dir + str(self.step_num) + "_" +
-                            "unsampled_cell_clusters.png", dpi=300)
-                plt.close()
 
         # Stop the simulation when all cells have been sampled by the robots
         # or Root Mean Square Error is below a given value
