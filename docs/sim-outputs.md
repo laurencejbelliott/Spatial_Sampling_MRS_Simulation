@@ -1,4 +1,4 @@
-[Home](https://github.com/laurencejbelliott/Spatial_Sampling_MRS_Simulation/) | [Accessing Simulation Outputs](/docs/sim-outputs.md) | [Sampling Custom Data](/docs/custom-data.md) | [Automating Batches of Experiments](/docs/batch-experiments.md)
+[Home](https://github.com/laurencejbelliott/Spatial_Sampling_MRS_Simulation/) | [Accessing Simulation Outputs](/docs/sim-outputs.md) | [Model Parameters](/docs/model-parameters.md) | [Sampling Custom Data](/docs/custom-data.md)
 
 # Accessing Simulation Outputs
 By default, simulation runs executed via `run.py` will save output data and additional graphical outputs
@@ -31,10 +31,18 @@ variance is a per-cell measure of the uncertainty of Kriging interpolation's pre
 Saved as `x_<robot_id>_visited_cells.png`, where x is the time step at which the figure was generated, and `<robot_id>` is
 the ID of the robot, generated from its initial position. The robot's trajectory and sampling points are overlaid on 
 top of the heatmap of visited cells.
-![A heatmap of a single robot's visited cells, overlaid with its trajectory and sampling points.](./images/240_(35,%2073)_visited_cells.png "A geatmap of a single robot's visited cells, overlaid with its trajectory and sampling points.")
+![A heatmap of a single robot's visited cells, overlaid with its trajectory and sampling points.](./images/240_(35,%2073)_visited_cells.png "A heatmap of a single robot's visited cells, overlaid with its trajectory and sampling points.")
 
 ### Combined Heatmap of Visited Cells With Trajectories and Sampling Points
 Saved as `x_combined_visited_cells.png`, where x is the time step at which the figure was
 generated. The trajectories and sampling points of all robots are overlaid on top of a
 heatmap of the number of visits made to each cell by the whole robot team.
 ![A heatmap of the number of visits to each cell by the robot team, overlaid with robot trajectories and sampling points.](./images/240_combined_visited_cells.png "A heatmap of the number of visits to each cell by the robot team, overlaid with robot trajectories and sampling points.")
+
+### Generating Animated GIFs of visual outputs
+The ['animate_graphical_output.py'](/mesa_spatial_sampling_MRS/animate_graphical_output.py) script can be used to
+generate animated GIFs of the above figures. Just change the value of `path_to_png_files` to the path containing the
+png images generated from the simulation, e.g. `"results/default/1/"`. To animate the figures generated from a batch of
+simulations, run ['animate_batchrunner_vis.py'](/mesa_spatial_sampling_MRS/animate_batchrunner_vis.py). You may need to
+modify the script to call the `animate_batch` function, providing the path to the batch's outputs, and the number of
+trials you wish to animate, e.g. `animate_batch("results/RR_DS_3robs_20x20/", 10)`.
