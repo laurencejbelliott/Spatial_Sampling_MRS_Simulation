@@ -5,7 +5,7 @@ Created using the MESA agent-based modelling framework for Python.
 This simulation is developed as a platform for simulated experiments to compare the
 performance of different combinations of task allocation and sampling methods for 
 multi-robot mapping of spatial data. Its use in modelling a soil compaction sampling MRS is described in detail in
-Roberts-Elliott et al.'s TAROS 2022 conference paper ['Agent-Based Simulation of Multi-Robot Soil 
+Roberts-Elliott et al.'s TAROS 2022 conference paper: ['Agent-Based Simulation of Multi-Robot Soil 
 Compaction Mapping'](https://doi.org/10.1007/978-3-031-15908-4_20).
 Its abstract representation of a MRS allows many experiments to be conducted quickly, with low computational complexity.
 It also includes interactive visualisation with easy control of parameters.
