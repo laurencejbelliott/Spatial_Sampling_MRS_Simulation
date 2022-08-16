@@ -4,13 +4,15 @@ A 2D grid-based simulation of a spatial sampling Multi-Robot System (MRS).
 Created using the MESA agent-based modelling framework for Python. 
 This simulation is developed as a platform for simulated experiments to compare the
 performance of different combinations of task allocation and sampling methods for 
-multi-robot mapping of spatial data. Its abstract representation of a MRS
-allows many experiments to be conducted quickly, with low computational complexity.
+multi-robot mapping of spatial data. Its use in modelling a soil compaction sampling MRS is described in detail in
+Roberts-Elliott et al.'s TAROS 2022 conference paper ['Agent-Based Simulation of Multi-Robot Soil 
+Compaction Mapping'](https://doi.org/10.1007/978-3-031-15908-4_20).
+Its abstract representation of a MRS allows many experiments to be conducted quickly, with low computational complexity.
 It also includes interactive visualisation with easy control of parameters.
 By default, the simulated MRS samples surface soil compaction data, recorded using
 an outdoor Thorvald robot at the University of Lincoln's Riseholme campus by 
-Jaime Fentanes et al. Further details of their dataset and their work on robotic soil
-compaction sampling can be found in [3D Soil Compaction Mapping through Kriging-based Exploration with a Mobile Robot](https://arxiv.org/abs/1803.08069).
+Jaime Fentanes et al. Further details of their dataset and their single-robot work on soil
+compaction sampling can be found in ['3D Soil Compaction Mapping through Kriging-based Exploration with a Mobile Robot'](https://arxiv.org/abs/1803.08069).
 This data is measured in Kpa, and is interpolated by this simulation using kriging,
 so that samples can be taken from ground-truth data at arbitrary locations.
 
