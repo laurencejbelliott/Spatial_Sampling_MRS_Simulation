@@ -12,7 +12,7 @@ def main():
                                     "task_allocation": "Sequential Single Item (SSI) auction", "num_robots": 3,
                                     "sampling_strategy": "Random",
                                     "results_dir": results_dir,
-                                    "vis_freq": 5
+                                    "vis_freq": 240
                                 },
                                 variable_parameters={
                                     "trial_num": range(1, 11, 1)},  # Iterate trial num. for seed & visual outputs
@@ -44,7 +44,7 @@ def main():
                                     "task_allocation": "Sequential Single Item (SSI) auction", "num_robots": 3,
                                     "sampling_strategy": "Dynamic",
                                     "results_dir": results_dir,
-                                    "vis_freq": 5},
+                                    "vis_freq": 240},
                                 variable_parameters={
                                     "trial_num": range(1, 11, 1)},
                                 iterations=1,
@@ -75,7 +75,7 @@ def main():
                                     "task_allocation": "Round Robin", "num_robots": 3,
                                     "sampling_strategy": "Random",
                                     "results_dir": results_dir,
-                                    "vis_freq": 5},
+                                    "vis_freq": 240},
                                 variable_parameters={
                                     "trial_num": range(1, 11, 1)},
                                 iterations=1,
@@ -106,7 +106,7 @@ def main():
                                     "task_allocation": "Round Robin", "num_robots": 3,
                                     "sampling_strategy": "Dynamic",
                                     "results_dir": results_dir,
-                                    "vis_freq": 5},
+                                    "vis_freq": 240},
                                 variable_parameters={
                                     "trial_num": range(1, 11, 1)},
                                 iterations=1,

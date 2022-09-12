@@ -276,10 +276,10 @@ class Robot(Agent):
                             for x in range(len(self.model.robots)):
                                 goal_pos = (random.randrange(0, self.model.width),
                                             random.randrange(0, self.model.height))
-                                while goal_pos in self.model.allocated_tasks:
+                                while tuple(goal_pos) in self.model.allocated_tasks:
                                     unallocated_cells = [[x, y] for x in range(self.model.width) for
                                                          y in range(self.model.height) if
-                                                         [x, y] not in self.model.allocated_tasks]
+                                                         tuple([x, y]) not in self.model.allocated_tasks]
                                     # print("Unallocated cells:", unallocated_cells)
                                     if unallocated_cells:
                                         goal_pos = random.choice(unallocated_cells)
@@ -483,7 +483,7 @@ class UnsampledCell(SampledCell):
 
 class SpatialSamplingModel(Model):
     def __init__(self, height=20, width=20, num_robots=2, task_allocation="Sequential Single Item (SSI) auction",
-                 trial_num=1, max_steps=100,
+                 trial_num=1, max_steps=240,
                  sampling_strategy="Dynamic",
                  results_dir="./results/default/",
                  verbose=True, vis_freq=1):
