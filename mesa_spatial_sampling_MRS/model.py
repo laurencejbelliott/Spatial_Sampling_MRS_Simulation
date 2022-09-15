@@ -483,7 +483,7 @@ class UnsampledCell(SampledCell):
 
 class SpatialSamplingModel(Model):
     def __init__(self, height=20, width=20, num_robots=2, task_allocation="Sequential Single Item (SSI) auction",
-                 trial_num=1, max_steps=240,
+                 trial_num=2, max_steps=240,
                  sampling_strategy="Dynamic",
                  results_dir="./results/default/",
                  verbose=True, vis_freq=1):
@@ -491,8 +491,12 @@ class SpatialSamplingModel(Model):
         self.random.seed(trial_num)
         random.seed(trial_num)
         self.step_num = 0
-        with open(r"interpolated_jaime_compaction_0cm_kpas.pickle", "rb") as input_file:
+
+        with open(r"interpolated_ADR.pickle", "rb") as input_file:
             self.gaussian = np.array(pickle.load(input_file))
+
+        # with open(r"interpolated_jaime_compaction_0cm_kpas.pickle", "rb") as input_file:
+        #     self.gaussian = np.array(pickle.load(input_file))
 
         # Delete old files and figures
         self.visualisation_dir = results_dir+str(trial_num)+"/"

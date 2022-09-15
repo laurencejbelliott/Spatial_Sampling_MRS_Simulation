@@ -20,8 +20,10 @@ def draw(agent):
 
 
 # Grid defined and instantiated
-with open(r"interpolated_jaime_compaction_0cm_kpas.pickle", "rb") as f:
+with open(r"interpolated_ADR.pickle", "rb") as f:
     interpolated_compaction_data = pickle.load(f)
+# with open(r"interpolated_jaime_compaction_0cm_kpas.pickle", "rb") as f:
+#     interpolated_compaction_data = pickle.load(f)
 
 
 # width = np.shape(interpolated_compaction_data)[0]
@@ -30,8 +32,8 @@ width = np.shape(interpolated_compaction_data)[1]
 height = np.shape(interpolated_compaction_data)[0]
 
 # canvas_element = CanvasGrid(draw, width, height, width*20, height*20)
-canvas_width = width * 6
-canvas_height = height * 6
+canvas_width = width * 10
+canvas_height = height * 10
 canvas_element = CanvasGrid(draw, width, height, canvas_width, canvas_height)
 
 RMSE_chart = ChartModule([{"Label": "RMSE",

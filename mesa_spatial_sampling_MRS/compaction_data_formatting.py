@@ -24,8 +24,6 @@ print("Env. height:", env_height)
 
 lat_range = np.max(compaction_df["lat"]) - np.min(compaction_df["lat"])
 lon_range = np.max(compaction_df["lon"]) - np.min(compaction_df["lon"])
-lon_to_lat_ratio = np.max(compaction_df["lon"]) / np.max(compaction_df["lat"])
-print("Lon to lat ratio:", lon_to_lat_ratio)
 
 # Perform kriging interpolation from sampled values in dataset
 # Define parameters (Explanations are in kriging.py)
