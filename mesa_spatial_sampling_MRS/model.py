@@ -483,7 +483,7 @@ class UnsampledCell(SampledCell):
 
 class SpatialSamplingModel(Model):
     def __init__(self, height=20, width=20, num_robots=2, task_allocation="Sequential Single Item (SSI) auction",
-                 trial_num=2, max_steps=240,
+                 trial_num=1, max_steps=240,
                  sampling_strategy="Dynamic",
                  results_dir="./results/default/",
                  verbose=True, vis_freq=1):

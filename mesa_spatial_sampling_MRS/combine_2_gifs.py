@@ -3,7 +3,7 @@
 import imageio
 import numpy as np
 
-gifs_dir = "results/default/2/"
+gifs_dir = "results/default/1/"
 
 # Create reader object for the gif
 gif1 = imageio.get_reader(gifs_dir+'combined_visited_cells_animation.gif')

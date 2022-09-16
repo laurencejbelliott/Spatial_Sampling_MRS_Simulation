@@ -1,11 +1,11 @@
 ,trial_num,Run,Average Variance,Average time to complete a task,Maximum visits to a cell,RMSE,Step number,Total cells sampled,Total distance travelled,Total idle time,Total waiting time,width,height,task_allocation,num_robots,sampling_strategy,results_dir,vis_freq
-0,1,162,85.61317063523056,15.444444444444443,2.0,14.224820493687782,100,8,279,18,0,162,110,Sequential Single Item (SSI) auction,3,Random,./results/SSI_RS_3robs_20x20/,5
-1,2,162,182.24613205035274,20.055555555555557,2.0,15.651261086371491,100,7,233,64,0,162,110,Sequential Single Item (SSI) auction,3,Random,./results/SSI_RS_3robs_20x20/,5
-2,3,162,88.73616531279525,23.166666666666668,2.0,12.468313841153028,100,8,289,8,0,162,110,Sequential Single Item (SSI) auction,3,Random,./results/SSI_RS_3robs_20x20/,5
-3,4,162,87.2388039799408,26.55,2.0,7.496586598535863,100,11,286,11,0,162,110,Sequential Single Item (SSI) auction,3,Random,./results/SSI_RS_3robs_20x20/,5
-4,5,162,218.60279636312796,19.25,2.0,12.109737358061126,100,8,263,34,0,162,110,Sequential Single Item (SSI) auction,3,Random,./results/SSI_RS_3robs_20x20/,5
-5,6,162,190.8391143181842,33.333333333333336,1.0,15.447488203545499,100,8,289,8,0,162,110,Sequential Single Item (SSI) auction,3,Random,./results/SSI_RS_3robs_20x20/,5
-6,7,162,137.15685636307373,23.333333333333332,2.0,15.583976370818284,100,8,289,8,0,162,110,Sequential Single Item (SSI) auction,3,Random,./results/SSI_RS_3robs_20x20/,5
-7,8,162,42.907274409407314,31.916666666666668,2.0,16.636949309971612,100,8,289,8,0,162,110,Sequential Single Item (SSI) auction,3,Random,./results/SSI_RS_3robs_20x20/,5
-8,9,162,221.3545886160695,14.966666666666667,1.0,13.970827376686133,100,8,289,8,0,162,110,Sequential Single Item (SSI) auction,3,Random,./results/SSI_RS_3robs_20x20/,5
-9,10,162,147.2377802296726,15.861111111111109,1.0,13.35863676719621,100,8,285,12,0,162,110,Sequential Single Item (SSI) auction,3,Random,./results/SSI_RS_3robs_20x20/,5
+0,1,162,62.40419381598295,34.43809523809524,2.0,8.50051575223955,240,19,689,28,0,162,110,Sequential Single Item (SSI) auction,3,Random,./results/SSI_RS_3robs_20x20/,5
+1,2,162,49.47970735807182,41.19444444444445,2.0,9.00749452038323,240,15,645,72,0,162,110,Sequential Single Item (SSI) auction,3,Random,./results/SSI_RS_3robs_20x20/,5
+2,3,162,111.1608885364381,40.22222222222222,2.0,14.342233093876175,240,14,703,14,0,162,110,Sequential Single Item (SSI) auction,3,Random,./results/SSI_RS_3robs_20x20/,5
+3,4,162,16.17848490114241,25.316666666666666,2.0,5.136120517692733,240,26,691,26,0,162,110,Sequential Single Item (SSI) auction,3,Random,./results/SSI_RS_3robs_20x20/,5
+4,5,162,24.66506675398118,34.13888888888889,2.0,4.485301637191999,240,20,671,46,0,162,110,Sequential Single Item (SSI) auction,3,Random,./results/SSI_RS_3robs_20x20/,5
+5,6,162,97.81707500035796,42.88148148148148,2.0,3.4610820130462776,240,17,700,17,0,162,110,Sequential Single Item (SSI) auction,3,Random,./results/SSI_RS_3robs_20x20/,5
+6,7,162,35.27289435798957,27.575,3.0,5.158351218126351,240,25,692,25,0,162,110,Sequential Single Item (SSI) auction,3,Random,./results/SSI_RS_3robs_20x20/,5
+7,8,162,11.59019849324106,28.42328042328042,2.0,3.0415565868888748,240,24,693,24,0,162,110,Sequential Single Item (SSI) auction,3,Random,./results/SSI_RS_3robs_20x20/,5
+8,9,162,38.51836835627089,37.654761904761905,2.0,2.604974480594404,240,19,698,19,0,162,110,Sequential Single Item (SSI) auction,3,Random,./results/SSI_RS_3robs_20x20/,5
+9,10,162,59.82993925204112,40.730158730158735,2.0,7.8916016455122415,240,17,697,20,0,162,110,Sequential Single Item (SSI) auction,3,Random,./results/SSI_RS_3robs_20x20/,5
