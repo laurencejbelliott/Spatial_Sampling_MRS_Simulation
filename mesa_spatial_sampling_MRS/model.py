@@ -162,8 +162,8 @@ class Robot(Agent):
                         if self.model.step_num == 1:
                             self.model.unsampled_clusters = fclusterdata(self.model.unsampled_cells,
                                                             #   t=math.sqrt(self.model.width*self.model.height)/16,
-                                                            #   t=math.sqrt(self.model.width*self.model.height)/8,
-                                                            t=self.model.width / (len(self.model.robots) / 3),
+                                                              t=math.sqrt(self.model.width*self.model.height)/16,
+                                                            # t=self.model.width / (len(self.model.robots) / 3),
                                                             criterion='distance',
                                                             metric='euclidean',
                                                             depth=1,
