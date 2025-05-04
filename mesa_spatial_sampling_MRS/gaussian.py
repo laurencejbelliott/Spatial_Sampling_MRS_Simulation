@@ -23,8 +23,9 @@ def makeGaussian(size, fwhm = 3, center=None):
 
 
 if __name__ == "__main__":
-    gaussian = makeGaussian(10)
-    sampled = np.zeros((10, 10))
-    sampled[3:5, 3:5] = gaussian[3:5, 3:5]
-    plt.imshow(sampled, cmap='gray', interpolation='nearest')
+    gaussian = makeGaussian(20)
+    # sampled = np.zeros((20, 20))
+    # sampled[3:5, 3:5] = gaussian[3:5, 3:5]
+    # plt.imshow(sampled, cmap='gray', interpolation='nearest')
+    plt.imshow(gaussian, cmap='gray', interpolation='nearest')
     plt.show()

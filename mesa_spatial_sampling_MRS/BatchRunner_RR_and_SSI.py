@@ -8,16 +8,17 @@ def main():
     results_dir = "./results/SSI_RS_3robs_20x20/"
     BatchRunner = BatchRunnerMP(SpatialSamplingModel,
                                 fixed_parameters={
-                                    "width": 162, "height": 110,  # Dimensions of the interpolated soil compaction data
+                                    # "width": 20, "height": 20,  # Dimensions of the interpolated soil compaction data
+                                    "width": 20, "height": 20,  # Dimensions of the interpolated soil compaction data
                                     "task_allocation": "Sequential Single Item (SSI) auction", "num_robots": 3,
                                     "sampling_strategy": "Random",
                                     "results_dir": results_dir,
-                                    "vis_freq": 240
+                                    "vis_freq": 300
                                 },
                                 variable_parameters={
                                     "trial_num": range(1, 11, 1)},  # Iterate trial num. for seed & visual outputs
                                 iterations=1,
-                                max_steps=99999,
+                                max_steps=300,
                                 model_reporters={"Step number": SpatialSamplingModel.getStepNum,
                                                  "RMSE": SpatialSamplingModel.getRMSE,
                                                  "Average Variance": SpatialSamplingModel.getAvgVariance,
@@ -40,15 +41,15 @@ def main():
     results_dir = "./results/SSI_DS_3robs_20x20/"
     BatchRunner = BatchRunnerMP(SpatialSamplingModel,
                                 fixed_parameters={
-                                    "width": 162, "height": 110,
+                                    "width": 20, "height": 20,
                                     "task_allocation": "Sequential Single Item (SSI) auction", "num_robots": 3,
                                     "sampling_strategy": "Dynamic",
                                     "results_dir": results_dir,
-                                    "vis_freq": 240},
+                                    "vis_freq": 300},
                                 variable_parameters={
                                     "trial_num": range(1, 11, 1)},
                                 iterations=1,
-                                max_steps=99999,
+                                max_steps=300,
                                 model_reporters={"Step number": SpatialSamplingModel.getStepNum,
                                                  "RMSE": SpatialSamplingModel.getRMSE,
                                                  "Average Variance": SpatialSamplingModel.getAvgVariance,
@@ -71,15 +72,15 @@ def main():
     results_dir = "./results/RR_RS_3robs_20x20/"
     BatchRunner = BatchRunnerMP(SpatialSamplingModel,
                                 fixed_parameters={
-                                    "width": 162, "height": 110,
+                                    "width": 20, "height": 20,
                                     "task_allocation": "Round Robin", "num_robots": 3,
                                     "sampling_strategy": "Random",
                                     "results_dir": results_dir,
-                                    "vis_freq": 240},
+                                    "vis_freq": 300},
                                 variable_parameters={
                                     "trial_num": range(1, 11, 1)},
                                 iterations=1,
-                                max_steps=99999,
+                                max_steps=300,
                                 model_reporters={"Step number": SpatialSamplingModel.getStepNum,
                                                  "RMSE": SpatialSamplingModel.getRMSE,
                                                  "Average Variance": SpatialSamplingModel.getAvgVariance,
@@ -102,15 +103,15 @@ def main():
     results_dir = "./results/RR_DS_3robs_20x20/"
     BatchRunner = BatchRunnerMP(SpatialSamplingModel,
                                 fixed_parameters={
-                                    "width": 162, "height": 110,
+                                    "width": 20, "height": 20,
                                     "task_allocation": "Round Robin", "num_robots": 3,
                                     "sampling_strategy": "Dynamic",
                                     "results_dir": results_dir,
-                                    "vis_freq": 240},
+                                    "vis_freq": 300},
                                 variable_parameters={
                                     "trial_num": range(1, 11, 1)},
                                 iterations=1,
-                                max_steps=99999,
+                                max_steps=300,
                                 model_reporters={"Step number": SpatialSamplingModel.getStepNum,
                                                  "RMSE": SpatialSamplingModel.getRMSE,
                                                  "Average Variance": SpatialSamplingModel.getAvgVariance,

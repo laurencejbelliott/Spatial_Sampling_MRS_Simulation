@@ -17,6 +17,7 @@ from mesa.datacollection import DataCollector
 import numpy as np
 import matplotlib.pyplot as plt
 from astar_python import Astar
+from gaussian import makeGaussian
 from kriging_utils.kriging import predict_by_kriging
 from scipy.cluster.hierarchy import fclusterdata
 
@@ -151,21 +152,22 @@ class Robot(Agent):
                     self.model.avg_variance = np.mean(self.model.v)
 
                     if self.model.sampling_strategy == "Dynamic":
-
                         # Cluster unsampled cells
                         # Get unsampled cells and format as N by M matrix (N observations, M dimensions)
                         self.model.unsampled_cells = np.where(np.array(self.model.sampled) >= -1)
                         # self.model.unsampled_cells = np.where(np.array(self.model.sampled) >= -1)
                         self.model.unsampled_cells = np.array(list(zip(self.model.unsampled_cells[1],
-                                                                       self.model.unsampled_cells[0])))
+                                                                    self.model.unsampled_cells[0])))
 
                         if self.model.step_num == 1:
                             self.model.unsampled_clusters = fclusterdata(self.model.unsampled_cells,
-                                                              t=math.sqrt(self.model.width*self.model.height)/4,
-                                                              criterion='distance',
-                                                              metric='euclidean',
-                                                              depth=1,
-                                                              method='complete')
+                                                            #   t=math.sqrt(self.model.width*self.model.height)/16,
+                                                            #   t=math.sqrt(self.model.width*self.model.height)/8,
+                                                            t=self.model.width / (len(self.model.robots) / 3),
+                                                            criterion='distance',
+                                                            metric='euclidean',
+                                                            depth=1,
+                                                            method='complete')
 
                         # Split variance cells array into sub-arrays based on cluster
                         self.model.v_clustered = [{} for cluster in range(1, len(set(self.model.unsampled_clusters)) + 1)]
@@ -205,7 +207,7 @@ class Robot(Agent):
 
                         # Sort clusters by mean kriging variance
                         cluster_ids_by_variance = sorted(cluster_mean_variances, key=cluster_mean_variances.get,
-                                                         reverse=True)
+                                                        reverse=True)
 
                         # Print cluster IDs sorted by mean variance, and their mean variance values
                         if self.model.verbose:
@@ -215,7 +217,7 @@ class Robot(Agent):
 
                         # Filter out IDs of clusters which have had a task allocated within them
                         cluster_ids_by_variance = [cluster_id for cluster_id in cluster_ids_by_variance if cluster_id
-                                                   not in self.model.clusters_sampled_ix]
+                                                not in self.model.clusters_sampled_ix]
                         print("Cluster IDs by variance, excluding already allocated clusters:", cluster_ids_by_variance)
                         print("Number of clusters excluding allocated clusters:", len(cluster_ids_by_variance))
                         clusters_for_task_generation = cluster_ids_by_variance[:2*len(self.model.robots)]
@@ -251,7 +253,7 @@ class Robot(Agent):
                             if not cluster_sampled:
                                 cluster_max_v_cell_str = max(cluster, key=cluster.get)
                                 cluster_max_v_cell_str = [re.sub("[^0-9]", "", word) for
-                                                          word in cluster_max_v_cell_str.split()]
+                                                        word in cluster_max_v_cell_str.split()]
                                 for word in cluster_max_v_cell_str:
                                     if not word.isdigit():
                                         cluster_max_v_cell_str.remove(word)
@@ -483,7 +485,7 @@ class UnsampledCell(SampledCell):
 
 class SpatialSamplingModel(Model):
     def __init__(self, height=20, width=20, num_robots=2, task_allocation="Sequential Single Item (SSI) auction",
-                 trial_num=1, max_steps=240,
+                 trial_num=1, max_steps=300,
                  sampling_strategy="Dynamic",
                  results_dir="./results/default/",
                  verbose=True, vis_freq=1):
@@ -491,8 +493,12 @@ class SpatialSamplingModel(Model):
         self.random.seed(trial_num)
         random.seed(trial_num)
         self.step_num = 0
-        with open(r"interpolated_jaime_compaction_0cm_kpas.pickle", "rb") as input_file:
-            self.gaussian = np.array(pickle.load(input_file))
+        # with open(r"interpolated_jaime_compaction_0cm_kpas.pickle", "rb") as input_file:
+        #     self.gaussian = np.array(pickle.load(input_file))
+
+        # An underlying 2D Gaussian distribution is created for the robots to sample values from
+        # At present this can only be a square matrix, hence only using the height
+        self.gaussian = makeGaussian(height)
 
         # Delete old files and figures
         self.visualisation_dir = results_dir+str(trial_num)+"/"
@@ -556,9 +562,6 @@ class SpatialSamplingModel(Model):
         # The grid is multi-layered, and does not loop at the edges
         self.grid = MultiGrid(self.width, self.height, torus=False)
 
-        # An underlying 2D Gaussian distribution is created for the robots to sample values from
-        # At present this can only be a square matrix, hence only using the height
-        # self.gaussian = makeGaussian(height)
         self.sampled = np.ones((self.width, self.height)) * -1
         self.visited = np.zeros((self.width, self.height))
         self.num_goals = 0
