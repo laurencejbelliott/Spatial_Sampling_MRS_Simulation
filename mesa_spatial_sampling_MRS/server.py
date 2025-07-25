@@ -54,8 +54,8 @@ RMSE_chart = ChartModule([{"Label": "RMSE",
 #                          data_collector_name="data_collector",
 #                          canvas_height=200, canvas_width=canvas_width)
 
-max_steps_slider = UserSettableParameter("slider", name="Maximum Time Steps for Sampling", value=300, min_value=1,
-                                         max_value=300, step=1)
+max_steps_slider = UserSettableParameter("slider", name="Maximum Time Steps for Sampling", value=240, min_value=1,
+                                         max_value=240, step=1)
 
 num_robots_slider = UserSettableParameter("slider", name="Number of Robots", value=3, min_value=2,
                                           max_value=20, step=1)

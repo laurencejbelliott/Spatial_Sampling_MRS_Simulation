@@ -162,12 +162,28 @@ class Robot(Agent):
                         if self.model.step_num == 1:
                             self.model.unsampled_clusters = fclusterdata(self.model.unsampled_cells,
                                                             #   t=math.sqrt(self.model.width*self.model.height)/16,
-                                                              t=math.sqrt(self.model.width*self.model.height)/16,
+                                                            #   t=math.sqrt(self.model.width*self.model.height)/8,
+                                                            # t=math.sqrt(self.model.width*self.model.height)/3,
+                                                            t=math.sqrt(self.model.width*self.model.height)/4,
                                                             # t=self.model.width / (len(self.model.robots) / 3),
                                                             criterion='distance',
                                                             metric='euclidean',
                                                             depth=1,
                                                             method='complete')
+
+                        sampled_cells = np.where(np.array(self.model.sampled) != -1)
+                        sampled_cells = list(zip(sampled_cells[1], sampled_cells[0]))
+
+                        # Convert unsampled_clusters to 2D array with dimensions equal to that of the model grid
+                        self.model.unsampled_clusters_2D = np.array(self.model.unsampled_clusters)
+                        self.model.unsampled_clusters_2D = self.model.unsampled_clusters_2D.reshape(
+                            (self.model.height, self.model.width))
+                        
+                        # Add sampled cluster index to self.model.clusters_sampled_ix
+                        for cell in sampled_cells:
+                            cell_cluster_ix = self.model.unsampled_clusters_2D[cell]
+                            print("Cell", cell, "with cluster index", cell_cluster_ix, "sampled")
+                            self.model.clusters_sampled_ix.add(cell_cluster_ix)
 
                         # Split variance cells array into sub-arrays based on cluster
                         self.model.v_clustered = [{} for cluster in range(1, len(set(self.model.unsampled_clusters)) + 1)]
@@ -183,7 +199,7 @@ class Robot(Agent):
                         print("Number of cells:", self.model.width * self.model.height)
 
                         if self.model.verbose:
-                            print("Allocated cluster indices:", self.model.clusters_sampled_ix)
+                            print("Allocated cluster indices:", self.model.clusters_allocated_ix)
 
                         # Clusters which have had tasks allocated within them are eliminated from task generation.
                         # The number of goals generated from each round of interpolation is limited to 2 times the
@@ -217,7 +233,7 @@ class Robot(Agent):
 
                         # Filter out IDs of clusters which have had a task allocated within them
                         cluster_ids_by_variance = [cluster_id for cluster_id in cluster_ids_by_variance if cluster_id
-                                                not in self.model.clusters_sampled_ix]
+                                                not in self.model.clusters_allocated_ix]
                         print("Cluster IDs by variance, excluding already allocated clusters:", cluster_ids_by_variance)
                         print("Number of clusters excluding allocated clusters:", len(cluster_ids_by_variance))
                         clusters_for_task_generation = cluster_ids_by_variance[:2*len(self.model.robots)]
@@ -225,9 +241,9 @@ class Robot(Agent):
 
                         cluster_count = 0
                         for cluster in self.model.v_clustered:
-                            cluster_sampled = False
+                            clusters_allocated = False
                             cluster_count += 1
-                            if cluster_count in self.model.clusters_sampled_ix or \
+                            if cluster_count in self.model.clusters_allocated_ix or \
                                     cluster_count not in clusters_for_task_generation:
                                 continue
 
@@ -244,13 +260,13 @@ class Robot(Agent):
                                 cell = [int(word) for word in cell]
                                 cell = [cell[1], cell[0]]
                                 if tuple(cell) in self.model.allocated_tasks:
-                                    cluster_sampled = True
-                                    self.model.clusters_sampled_ix.add(cluster_count)
+                                    clusters_allocated = True
+                                    self.model.clusters_allocated_ix.add(cluster_count)
                                     break
 
-                            if cluster_sampled:
+                            if clusters_allocated:
                                 continue
-                            if not cluster_sampled:
+                            if not clusters_allocated:
                                 cluster_max_v_cell_str = max(cluster, key=cluster.get)
                                 cluster_max_v_cell_str = [re.sub("[^0-9]", "", word) for
                                                         word in cluster_max_v_cell_str.split()]
@@ -260,10 +276,15 @@ class Robot(Agent):
 
                                 cluster_max_v_cell = [int(word) for word in cluster_max_v_cell_str]
                                 cluster_max_v_cell = [cluster_max_v_cell[1], cluster_max_v_cell[0]]
-                                cluster_sampled = True
-                                self.model.clusters_sampled_ix.add(cluster_count)
+                                clusters_allocated = True
+                                self.model.clusters_allocated_ix.add(cluster_count)
                                 self.model.candidate_goals.append(cluster_max_v_cell)
                                 continue
+                        # Set clusters_sampled to True if all clusters have been sampled
+                        if len(self.model.clusters_sampled_ix) == len(self.model.v_clustered) - 1:
+                            self.model.clusters_sampled = True
+                            if self.model.verbose:
+                                print("All clusters sampled, setting clusters_sampled to True")
 
                         if self.model.verbose:
                             print("No. of new task goals:", len(self.model.candidate_goals))
@@ -485,7 +506,7 @@ class UnsampledCell(SampledCell):
 
 class SpatialSamplingModel(Model):
     def __init__(self, height=20, width=20, num_robots=2, task_allocation="Sequential Single Item (SSI) auction",
-                 trial_num=1, max_steps=300,
+                 trial_num=1, max_steps=240,
                  sampling_strategy="Dynamic",
                  results_dir="./results/default/",
                  verbose=True, vis_freq=1):
@@ -553,6 +574,7 @@ class SpatialSamplingModel(Model):
         self.verbose = verbose
         self.vis_freq = vis_freq
         self.v_clustered = []
+        self.clusters_allocated_ix = set()
         self.clusters_sampled_ix = set()
 
         self.data_collector = DataCollector(model_reporters={"RMSE": "RMSE"})
@@ -790,8 +812,7 @@ class SpatialSamplingModel(Model):
                     with open(self.vis_data_dir + str(self.step_num) + "_" + "unsampled_cell_clusters.pickle", "wb") as f:
                         pickle.dump(self.unsampled_clusters, f)
 
-        # Stop the simulation when all cells have been sampled by the robots
-        # or Root Mean Square Error is below a given value
+        # Stop the simulation when all cells have been sampled by the robots, or all clusters have been sampled
         if self.step_num >= self.max_steps or -1 not in self.sampled or self.clusters_sampled:
             metrics = pd.DataFrame({
                 "Time step": range(1, len(self.RMSEs) + 1),
