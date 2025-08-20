@@ -4,7 +4,7 @@ from mesa.batchrunner import BatchRunnerMP
 
 
 def main():
-    # Automated batch of trials for Round Robin wih random sampling, 3 robots, Jaime's soil compaction data at 0cm depth
+    # Automated batch of trials sampling Jaime's soil compaction data at 0cm depth with 3 robots
     results_dir = "./results/SSI_RS_3robs_20x20/"
     BatchRunner = BatchRunnerMP(SpatialSamplingModel,
                                 fixed_parameters={
