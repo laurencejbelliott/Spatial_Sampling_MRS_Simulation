@@ -151,62 +151,32 @@ class Robot(Agent):
                     self.model.RMSE = np.sqrt(np.mean(np.power(np.array(self.model.gaussian) - self.model.m, 2)))
                     self.model.avg_variance = np.mean(self.model.v)
 
+                    # --- CLUSTERING LOGIC FOR BOTH STRATEGIES ---
+                    self.model.unsampled_cells = np.where(np.array(self.model.sampled) >= -1)
+                    self.model.unsampled_cells = np.array(list(zip(self.model.unsampled_cells[1], self.model.unsampled_cells[0])))
+                    if self.model.step_num == 1:
+                        self.model.unsampled_clusters = fclusterdata(
+                            self.model.unsampled_cells,
+                            t=math.sqrt(self.model.width*self.model.height)/4,
+                            criterion='distance',
+                            metric='euclidean',
+                            depth=1,
+                            method='complete')
+                    sampled_cells = np.where(np.array(self.model.sampled) != -1)
+                    sampled_cells = list(zip(sampled_cells[1], sampled_cells[0]))
+                    self.model.unsampled_clusters_2D = np.array(self.model.unsampled_clusters)
+                    self.model.unsampled_clusters_2D = self.model.unsampled_clusters_2D.reshape((self.model.height, self.model.width))
+                    for cell in sampled_cells:
+                        cell_cluster_ix = self.model.unsampled_clusters_2D[cell]
+                        self.model.clusters_sampled_ix.add(cell_cluster_ix)
+                    self.model.v_clustered = [{} for cluster in range(1, len(set(self.model.unsampled_clusters)) + 1)]
+                    for cell_ix in range(0, len(self.model.unsampled_cells)):
+                        cell = self.model.unsampled_cells[cell_ix]
+                        cell_cluster = self.model.unsampled_clusters[cell_ix]
+                        cell_variance = self.model.v[cell[0], cell[1]]
+                        self.model.v_clustered[cell_cluster - 1][str(cell)] = cell_variance
+                    self.model.candidate_goals = []
                     if self.model.sampling_strategy == "Dynamic":
-                        # Cluster unsampled cells
-                        # Get unsampled cells and format as N by M matrix (N observations, M dimensions)
-                        self.model.unsampled_cells = np.where(np.array(self.model.sampled) >= -1)
-                        # self.model.unsampled_cells = np.where(np.array(self.model.sampled) >= -1)
-                        self.model.unsampled_cells = np.array(list(zip(self.model.unsampled_cells[1],
-                                                                    self.model.unsampled_cells[0])))
-
-                        if self.model.step_num == 1:
-                            self.model.unsampled_clusters = fclusterdata(self.model.unsampled_cells,
-                                                            #   t=math.sqrt(self.model.width*self.model.height)/16,
-                                                            #   t=math.sqrt(self.model.width*self.model.height)/8,
-                                                            # t=math.sqrt(self.model.width*self.model.height)/3,
-                                                            t=math.sqrt(self.model.width*self.model.height)/4,
-                                                            # t=self.model.width / (len(self.model.robots) / 3),
-                                                            criterion='distance',
-                                                            metric='euclidean',
-                                                            depth=1,
-                                                            method='complete')
-
-                        sampled_cells = np.where(np.array(self.model.sampled) != -1)
-                        sampled_cells = list(zip(sampled_cells[1], sampled_cells[0]))
-
-                        # Convert unsampled_clusters to 2D array with dimensions equal to that of the model grid
-                        self.model.unsampled_clusters_2D = np.array(self.model.unsampled_clusters)
-                        self.model.unsampled_clusters_2D = self.model.unsampled_clusters_2D.reshape(
-                            (self.model.height, self.model.width))
-                        
-                        # Add sampled cluster index to self.model.clusters_sampled_ix
-                        for cell in sampled_cells:
-                            cell_cluster_ix = self.model.unsampled_clusters_2D[cell]
-                            print("Cell", cell, "with cluster index", cell_cluster_ix, "sampled")
-                            self.model.clusters_sampled_ix.add(cell_cluster_ix)
-
-                        # Split variance cells array into sub-arrays based on cluster
-                        self.model.v_clustered = [{} for cluster in range(1, len(set(self.model.unsampled_clusters)) + 1)]
-                        for cell_ix in range(0, len(self.model.unsampled_cells)):
-                            cell = self.model.unsampled_cells[cell_ix]
-                            cell_cluster = self.model.unsampled_clusters[cell_ix]
-
-                            cell_variance = self.model.v[cell[0], cell[1]]
-                            self.model.v_clustered[cell_cluster - 1][str(cell)] = cell_variance
-
-                        self.model.candidate_goals = []
-                        print("Number of clusters:", len(self.model.v_clustered))
-                        print("Number of cells:", self.model.width * self.model.height)
-
-                        if self.model.verbose:
-                            print("Allocated cluster indices:", self.model.clusters_allocated_ix)
-
-                        # Clusters which have had tasks allocated within them are eliminated from task generation.
-                        # The number of goals generated from each round of interpolation is limited to 2 times the
-                        # number of robots, creating a task in the x clusters with the highest mean kriging
-                        # variance, where x is 2 times the number of robots.
-
-                        # Get mean kriging variance for each cluster
                         cluster_count = 0
                         cluster_mean_variances = {}
                         for cluster in self.model.v_clustered:
@@ -215,106 +185,69 @@ class Robot(Agent):
                             cluster_total_variance = 0
                             for cell in cluster.keys():
                                 cluster_total_variance += cluster[cell]
-
                             cluster_mean_variance = cluster_total_variance / cluster_size
-                            if self.model.verbose:
-                                print("Mean kriging variance in cluster", cluster_count, ":", cluster_mean_variance)
                             cluster_mean_variances[cluster_count] = cluster_mean_variance
-
-                        # Sort clusters by mean kriging variance
-                        cluster_ids_by_variance = sorted(cluster_mean_variances, key=cluster_mean_variances.get,
-                                                        reverse=True)
-
-                        # Print cluster IDs sorted by mean variance, and their mean variance values
-                        if self.model.verbose:
-                            print("Cluster IDs sorted by kriging variance (highest first):")
-                            for cluster_id in cluster_ids_by_variance:
-                                print(cluster_id, cluster_mean_variances[cluster_id])
-
-                        # Filter out IDs of clusters which have had a task allocated within them
-                        cluster_ids_by_variance = [cluster_id for cluster_id in cluster_ids_by_variance if cluster_id
-                                                not in self.model.clusters_allocated_ix]
-                        print("Cluster IDs by variance, excluding already allocated clusters:", cluster_ids_by_variance)
-                        print("Number of clusters excluding allocated clusters:", len(cluster_ids_by_variance))
+                        cluster_ids_by_variance = sorted(cluster_mean_variances, key=cluster_mean_variances.get, reverse=True)
+                        cluster_ids_by_variance = [cluster_id for cluster_id in cluster_ids_by_variance if cluster_id not in self.model.clusters_allocated_ix]
                         clusters_for_task_generation = cluster_ids_by_variance[:2*len(self.model.robots)]
-                        print("Clusters for task generation:", clusters_for_task_generation)
-
                         cluster_count = 0
                         for cluster in self.model.v_clustered:
                             clusters_allocated = False
                             cluster_count += 1
-                            if cluster_count in self.model.clusters_allocated_ix or \
-                                    cluster_count not in clusters_for_task_generation:
+                            if cluster_count in self.model.clusters_allocated_ix or cluster_count not in clusters_for_task_generation:
                                 continue
-
-                            cluster_total_variance = 0
-                            for cell in cluster.keys():
-                                cluster_total_variance += cluster[cell]
-
                             for cell in cluster.keys():
                                 cell = [re.sub("[^0-9]", "", word) for word in cell.split()]
                                 for word in cell:
                                     if not word.isdigit():
                                         cell.remove(word)
-
                                 cell = [int(word) for word in cell]
                                 cell = [cell[1], cell[0]]
                                 if tuple(cell) in self.model.allocated_tasks:
                                     clusters_allocated = True
                                     self.model.clusters_allocated_ix.add(cluster_count)
                                     break
-
                             if clusters_allocated:
                                 continue
                             if not clusters_allocated:
                                 cluster_max_v_cell_str = max(cluster, key=cluster.get)
-                                cluster_max_v_cell_str = [re.sub("[^0-9]", "", word) for
-                                                        word in cluster_max_v_cell_str.split()]
+                                cluster_max_v_cell_str = [re.sub("[^0-9]", "", word) for word in cluster_max_v_cell_str.split()]
                                 for word in cluster_max_v_cell_str:
                                     if not word.isdigit():
                                         cluster_max_v_cell_str.remove(word)
-
                                 cluster_max_v_cell = [int(word) for word in cluster_max_v_cell_str]
                                 cluster_max_v_cell = [cluster_max_v_cell[1], cluster_max_v_cell[0]]
                                 clusters_allocated = True
                                 self.model.clusters_allocated_ix.add(cluster_count)
                                 self.model.candidate_goals.append(cluster_max_v_cell)
                                 continue
-                        # Set clusters_sampled to True if all clusters have been sampled
-                        if len(self.model.clusters_sampled_ix) == len(self.model.v_clustered) - 1:
-                            self.model.clusters_sampled = True
-                            if self.model.verbose:
-                                print("All clusters sampled, setting clusters_sampled to True")
-
-                        if self.model.verbose:
-                            print("No. of new task goals:", len(self.model.candidate_goals))
-
                     elif self.model.sampling_strategy == "Random":
-                        # Set goals as x random unsampled cells (candidate goals)
-                        # where x is the number of robots
-                        self.model.candidate_goals = []
-                        if self.model.all_cells_assigned:
-                            pass
-                        else:
-                            for x in range(len(self.model.robots)):
-                                goal_pos = (random.randrange(0, self.model.width),
-                                            random.randrange(0, self.model.height))
-                                while tuple(goal_pos) in self.model.allocated_tasks:
-                                    unallocated_cells = [[x, y] for x in range(self.model.width) for
-                                                         y in range(self.model.height) if
-                                                         tuple([x, y]) not in self.model.allocated_tasks]
-                                    # print("Unallocated cells:", unallocated_cells)
-                                    if unallocated_cells:
-                                        goal_pos = random.choice(unallocated_cells)
-                                    else:
-                                        self.model.all_cells_assigned = True
-                                        break
-                                if not self.model.all_cells_assigned:
-                                    self.model.candidate_goals.append(goal_pos)
-
+                        cluster_ids = list(range(1, len(self.model.v_clustered) + 1))
+                        available_clusters = [cid for cid in cluster_ids if cid not in self.model.clusters_allocated_ix]
+                        for cid in available_clusters:
+                            cluster_cells = list(self.model.v_clustered[cid - 1].keys())
+                            unsampled_cells_in_cluster = []
+                            for cell_str in cluster_cells:
+                                cell = [re.sub("[^0-9]", "", word) for word in cell_str.split()]
+                                for word in cell:
+                                    if not word.isdigit():
+                                        cell.remove(word)
+                                cell = [int(word) for word in cell]
+                                cell = [cell[1], cell[0]]
+                                if tuple(cell) not in self.model.allocated_tasks:
+                                    unsampled_cells_in_cluster.append(cell)
+                            if unsampled_cells_in_cluster:
+                                goal_pos = random.choice(unsampled_cells_in_cluster)
+                                self.model.candidate_goals.append(goal_pos)
+                                self.model.clusters_allocated_ix.add(cid)
+                                if len(self.model.candidate_goals) >= len(self.model.robots):
+                                    break
+                    if len(self.model.clusters_sampled_ix) == len(self.model.v_clustered) - 1:
+                        self.model.clusters_sampled = True
+                        if self.model.verbose:
+                            print("All clusters sampled, setting clusters_sampled to True")
                     if self.model.verbose:
                         print("Candidate goals:", self.model.candidate_goals)
-
                     if self.model.task_allocation == "Sequential Single Item (SSI) auction":
                         self.model.SSI_TA()
                     elif self.model.task_allocation == "Round Robin":
