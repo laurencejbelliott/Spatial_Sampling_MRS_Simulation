@@ -779,7 +779,7 @@ class SpatialSamplingModel(Model):
 
             plt.figure('Variance')
             plt.title("Kriging Variance at Step " + str(self.step_num))
-            plt.imshow(self.v, origin="lower", vmin=1, vmax=600)
+            plt.imshow(self.v, origin="lower", vmin=-2.0650735206354432e-16, vmax=0.017689277548618383)
             plt.xlabel("Cell X co-ordinate")
             plt.ylabel("Cell Y co-ordinate")
             plt.colorbar()
